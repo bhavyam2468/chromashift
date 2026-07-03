@@ -15,7 +15,7 @@ function isLight(hex) {
 }
 
 export default function ColorBar({
-  color, index, total, onToggleLock, onUpdateHex, onUpdateRole, onCopy
+  color, index, total, palette = [], onToggleLock, onUpdateHex, onUpdateRole, onCopy
 }) {
   const [showSliders, setShowSliders] = useState(false);
   const [isEditingHex, setIsEditingHex] = useState(false);
@@ -190,16 +190,21 @@ export default function ColorBar({
                         const role = `${prefix}-${suffix}`;
                         const display = ROLE_DISPLAY[role];
                         const isActive = color.role === role;
+                        const isTaken = palette.some(c => c.role === role && c.id !== color.id);
                         return (
                           <button key={role}
+                            disabled={isTaken}
                             onClick={() => { onUpdateRole(color.id, role); setShowRoleMenu(false); }}
-                            className="flex items-center justify-between w-full px-3 py-1.5 text-[10px] font-semibold transition-colors"
+                            className={`flex items-center justify-between w-full px-3 py-1.5 text-[10px] font-semibold transition-colors ${isTaken ? 'opacity-35 cursor-not-allowed' : ''}`}
                             style={{
                               color: textColor,
                               backgroundColor: isActive ? overlayBg : 'transparent',
                             }}
                           >
-                            <span>{display.prefix} {display.suffix}</span>
+                            <span className="flex items-center gap-1.5">
+                              {display.prefix} {display.suffix}
+                              {isTaken && <span className="text-[7px] opacity-40 uppercase tracking-wider font-bold">(In Use)</span>}
+                            </span>
                             {isActive && <Check size={10} className="opacity-60" />}
                           </button>
                         );

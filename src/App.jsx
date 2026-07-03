@@ -234,6 +234,7 @@ export default function App() {
             {palette.map((color, index) => (
               <ColorBar key={`${color.id}-${shuffleKey}`}
                 color={color} index={index} total={palette.length}
+                palette={palette}
                 onToggleLock={handleToggleLock} onUpdateHex={handleUpdateHex}
                 onUpdateRole={handleUpdateRole} onCopy={handleCopyColor} />
             ))}

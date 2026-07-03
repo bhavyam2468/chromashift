@@ -310,12 +310,18 @@ export function generatePalette(size, moodKey, currentPalette = []) {
   for (let i = 0; i < size; i++) {
     if (newPalette[i]) continue; // Already filled by locked color
 
-    // Find the next available role in priority order
+    // Check if the current slot already had a role in currentPalette, and if it's not taken
+    const existingSlot = currentPalette[i];
     let assignedRole = null;
-    for (const role of priorityOrder) {
-      if (!usedRoles.has(role)) {
-        assignedRole = role;
-        break;
+    if (existingSlot && existingSlot.role && !usedRoles.has(existingSlot.role)) {
+      assignedRole = existingSlot.role;
+    } else {
+      // Find the next available role in priority order
+      for (const role of priorityOrder) {
+        if (!usedRoles.has(role)) {
+          assignedRole = role;
+          break;
+        }
       }
     }
     
