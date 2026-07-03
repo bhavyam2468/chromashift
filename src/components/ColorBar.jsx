@@ -126,12 +126,63 @@ export default function ColorBar({
           };
         }
       }
-      case 'slide':
-        return {
-          hidden: { y: '25%', opacity: 0 },
-          visible: { y: 0, opacity: 1, transition: isFastShuffle ? fastTransition : { ...SPRING, delay: idx * 0.04 } },
-          exit: { y: '-25%', opacity: 0, transition: isFastShuffle ? fastTransition : { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
-        };
+      case 'slide': {
+        const originVal = '40%';
+        const destVal = '-40%';
+        const staggerVisible = isFastShuffle ? idx * 0.01 : idx * 0.035;
+        const staggerExit = isFastShuffle ? idx * 0.005 : idx * 0.015;
+        const fastTransition = { duration: 0.18, ease: 'easeOut' };
+
+        if (isMobileLayout) {
+          return {
+            hidden: { x: originVal, scale: 0.92, opacity: 0 },
+            visible: {
+              x: 0,
+              scale: 1,
+              opacity: 1,
+              transition: isFastShuffle ? fastTransition : {
+                x: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
+                scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
+                opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
+              }
+            },
+            exit: {
+              x: destVal,
+              scale: 0.92,
+              opacity: 0,
+              transition: isFastShuffle ? { duration: 0.15, ease: 'easeIn' } : {
+                x: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
+                scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
+                opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
+              }
+            }
+          };
+        } else {
+          return {
+            hidden: { y: originVal, scale: 0.92, opacity: 0 },
+            visible: {
+              y: 0,
+              scale: 1,
+              opacity: 1,
+              transition: isFastShuffle ? fastTransition : {
+                y: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
+                scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
+                opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
+              }
+            },
+            exit: {
+              y: destVal,
+              scale: 0.92,
+              opacity: 0,
+              transition: isFastShuffle ? { duration: 0.15, ease: 'easeIn' } : {
+                y: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
+                scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
+                opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
+              }
+            }
+          };
+        }
+      }
       case 'cascade':
       default:
         return {
