@@ -183,9 +183,9 @@ export default function App() {
             <AnimatePresence mode="wait" initial={false}>
               <motion.button
                 key={activeTheme}
-                initial={{ opacity: 0, x: 12, filter: 'blur(2px)' }}
-                animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, x: -12, filter: 'blur(2px)' }}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.22, ease: 'easeInOut' }}
                 onClick={cycleMood}
                 className="absolute text-[11px] font-bold text-white hover:text-white/80 transition-colors whitespace-nowrap text-left"
@@ -267,7 +267,7 @@ export default function App() {
             initial="hidden" animate="visible" exit="exit"
             variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } }, exit: { transition: { staggerChildren: 0.04, staggerDirection: -1 } } }}>
             {palette.map((color, index) => (
-              <ColorBar key={`${color.id}-${shuffleKey}`}
+              <ColorBar key={color.id}
                 color={color} index={index} total={palette.length}
                 palette={palette} transitionStyle={transitionStyle}
                 onToggleLock={handleToggleLock} onUpdateHex={handleUpdateHex}

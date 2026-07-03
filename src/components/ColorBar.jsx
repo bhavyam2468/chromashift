@@ -53,73 +53,81 @@ export default function ColorBar({
 
   const roleDisplay = ROLE_DISPLAY[color.role];
 
-  const getVariants = (style, idx) => {
+  const isMobileLayout = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
+  const getBgVariants = (style, idx) => {
+    const isEven = idx % 2 === 0;
     switch (style) {
-      case 'fade':
+      case 'crossfade':
         return {
-          hidden: { opacity: 0, scale: 1, filter: 'blur(0px)', y: 0 },
-          visible: {
-            opacity: 1, scale: 1, filter: 'blur(0px)', y: 0,
-            transition: { duration: 0.4, ease: 'easeInOut', delay: idx * 0.05 }
-          },
-          exit: {
-            opacity: 0, scale: 1, filter: 'blur(0px)', y: 0,
-            transition: { duration: 0.3, ease: 'easeInOut', delay: idx * 0.02 }
-          }
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeInOut' } },
+          exit: { opacity: 0, transition: { duration: 0.45, ease: 'easeInOut' } }
         };
+      case 'cross-slide':
+        if (isMobileLayout) {
+          return {
+            hidden: { x: isEven ? '100%' : '-100%', opacity: 1 },
+            visible: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 280, damping: 28 } },
+            exit: { x: isEven ? '-100%' : '100%', opacity: 1, transition: { duration: 0.35, ease: 'easeInOut' } }
+          };
+        } else {
+          return {
+            hidden: { y: isEven ? '100%' : '-100%', opacity: 1 },
+            visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 280, damping: 28 } },
+            exit: { y: isEven ? '-100%' : '100%', opacity: 1, transition: { duration: 0.35, ease: 'easeInOut' } }
+          };
+        }
       case 'slide':
         return {
-          hidden: { opacity: 0, y: '20%', scale: 1, filter: 'blur(0px)' },
-          visible: {
-            opacity: 1, y: 0, scale: 1, filter: 'blur(0px)',
-            transition: { ...SPRING, delay: idx * 0.05 }
-          },
-          exit: {
-            opacity: 0, y: '-20%', scale: 1, filter: 'blur(0px)',
-            transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 }
-          }
+          hidden: { y: '25%', opacity: 0 },
+          visible: { y: 0, opacity: 1, transition: { ...SPRING, delay: idx * 0.04 } },
+          exit: { y: '-25%', opacity: 0, transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
         };
       case 'cascade':
       default:
         return {
-          hidden: { opacity: 0, scale: 0.95, filter: 'blur(8px)', y: 0 },
-          visible: {
-            opacity: 1, scale: 1, filter: 'blur(0px)', y: 0,
-            transition: { ...SPRING, delay: idx * 0.05 }
-          },
-          exit: {
-            opacity: 0, scale: 0.95, filter: 'blur(6px)', y: 0,
-            transition: { duration: 0.2, ease: [0.4, 0, 1, 1], delay: idx * 0.02 }
-          }
+          hidden: { scale: 0.95, opacity: 0, filter: 'blur(6px)' },
+          visible: { scale: 1, opacity: 1, filter: 'blur(0px)', transition: { ...SPRING, delay: idx * 0.04 } },
+          exit: { scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
         };
     }
   };
 
-  const barVariants = getVariants(transitionStyle, index);
+  const bgVariants = getBgVariants(transitionStyle, index);
 
   return (
     <motion.div
       layout
-      variants={barVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
       whileHover={{ flex: 1.3 }}
       transition={{ flex: { type: 'spring', stiffness: 260, damping: 28 } }}
       className="relative flex flex-row md:flex-col justify-between items-center px-4 py-2 md:py-8 md:px-3 h-full w-full group overflow-hidden cursor-pointer"
-      style={{ backgroundColor: color.hex, flex: 1, minWidth: 0 }}
+      style={{ flex: 1, minWidth: 0 }}
       onClick={!isEditingHex && !showRoleMenu && !showSliders ? handleCopy : undefined}
     >
+      {/* Dynamic Background Layer */}
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={color.hex}
+          variants={bgVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          className="absolute inset-0 z-0"
+          style={{ backgroundColor: color.hex }}
+        />
+      </AnimatePresence>
+
       {/* Shimmer */}
       <motion.div
-        className="absolute inset-0 pointer-events-none opacity-0 md:group-hover:opacity-100 transition-opacity duration-300"
+        className="absolute inset-0 pointer-events-none opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10"
         style={{ background: `linear-gradient(135deg, ${light ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'} 0%, transparent 50%)` }}
       />
 
       {/* Lock indicator stripe */}
       {color.locked && (
         <motion.div
-          className="absolute top-0 left-0 bottom-0 w-1 md:w-auto md:h-1 md:right-0"
+          className="absolute top-0 left-0 bottom-0 w-1 md:w-auto md:h-1 md:right-0 z-10"
           style={{ backgroundColor: light ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.35)' }}
           initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={SPRING}
         />
@@ -258,12 +266,22 @@ export default function ColorBar({
               style={{ color: textColor, borderBottomColor: mutedColor }} />
           </form>
         ) : (
-          <motion.button whileTap={{ scale: 0.94 }}
-            onClick={(e) => { e.stopPropagation(); setIsEditingHex(true); setTempHex(color.hex); }}
-            className="font-mono font-bold text-xs md:text-base tracking-wider hover:opacity-70 transition-opacity"
-            style={{ color: textColor }}>
-            {color.hex.toUpperCase()}
-          </motion.button>
+          <div className="overflow-hidden relative h-5 flex items-center justify-center min-w-[70px]">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.button
+                key={color.hex}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                whileTap={{ scale: 0.94 }}
+                onClick={(e) => { e.stopPropagation(); setIsEditingHex(true); setTempHex(color.hex); }}
+                className="absolute font-mono font-bold text-xs md:text-base tracking-wider hover:opacity-70 transition-opacity"
+                style={{ color: textColor }}>
+                {color.hex.toUpperCase()}
+              </motion.button>
+            </AnimatePresence>
+          </div>
         )}
 
         {/* Copy confirmation feedback (Desktop-only hint) */}

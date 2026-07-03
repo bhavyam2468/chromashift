@@ -310,8 +310,10 @@ export function generatePalette(size, moodKey, currentPalette = []) {
   for (let i = 0; i < size; i++) {
     if (newPalette[i]) continue; // Already filled by locked color
 
-    // Check if the current slot already had a role in currentPalette, and if it's not taken
+    // Check if the current slot already had a role/id in currentPalette
     const existingSlot = currentPalette[i];
+    const slotId = (existingSlot && existingSlot.id) || Math.random().toString(36).substr(2, 9);
+    
     let assignedRole = null;
     if (existingSlot && existingSlot.role && !usedRoles.has(existingSlot.role)) {
       assignedRole = existingSlot.role;
@@ -334,7 +336,7 @@ export function generatePalette(size, moodKey, currentPalette = []) {
     const hex = hslToHex(hsl.h, hsl.s, hsl.l);
 
     newPalette[i] = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: slotId,
       hex,
       h: hsl.h,
       s: hsl.s,

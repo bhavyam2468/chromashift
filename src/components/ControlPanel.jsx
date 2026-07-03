@@ -134,7 +134,7 @@ export default function ControlPanel({
                           className="absolute right-0 bottom-full mb-2 z-40 rounded-xl bg-[#12121e] border border-white/10 shadow-2xl p-1.5 w-36 flex flex-col gap-0.5 text-left"
                           onClick={e => e.stopPropagation()}
                         >
-                          {['cascade', 'fade', 'slide'].map(style => {
+                          {['cascade', 'crossfade', 'cross-slide', 'slide'].map(style => {
                             const isSelected = transitionStyle === style;
                             return (
                               <button
@@ -246,7 +246,7 @@ export default function ControlPanel({
                     <div className="px-2.5 py-1 text-[8px] font-black tracking-[0.15em] uppercase text-white/30 border-b border-white/5 mb-1 select-none">
                       Select Effect
                     </div>
-                    {['cascade', 'fade', 'slide'].map(style => {
+                    {['cascade', 'crossfade', 'cross-slide', 'slide'].map(style => {
                       const isSelected = transitionStyle === style;
                       return (
                         <button
