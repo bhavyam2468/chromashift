@@ -44,7 +44,9 @@ export default function App() {
   
   const [isFastShuffle, setIsFastShuffle] = useState(false);
   const fastShuffleTimerRef = useRef(null);
+  const holdTimeoutRef = useRef(null);
   const isSpaceDownRef = useRef(false);
+  const isHoldingRef = useRef(false);
 
   const stateRef = useRef({});
   stateRef.current = { palette, size, activeTheme, isWelcomeState, isMoodLocked };
@@ -101,21 +103,45 @@ export default function App() {
   }, []);
 
   const startFastShuffle = useCallback(() => {
-    if (fastShuffleTimerRef.current) return;
-    setIsFastShuffle(true);
-    triggerShuffle();
-    fastShuffleTimerRef.current = setInterval(() => {
-      triggerShuffle();
-    }, 150);
+    if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
+    if (fastShuffleTimerRef.current) clearInterval(fastShuffleTimerRef.current);
+    
+    isHoldingRef.current = false;
+    
+    // Set a timeout to differentiate single clicks from holds
+    holdTimeoutRef.current = setTimeout(() => {
+      isHoldingRef.current = true;
+      setIsFastShuffle(true);
+      
+      // Start continuous shuffling
+      fastShuffleTimerRef.current = setInterval(() => {
+        triggerShuffle();
+      }, 150);
+    }, 250); // 250ms threshold
   }, [triggerShuffle]);
 
   const stopFastShuffle = useCallback(() => {
+    if (holdTimeoutRef.current) {
+      clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
+    }
+    
     if (fastShuffleTimerRef.current) {
       clearInterval(fastShuffleTimerRef.current);
       fastShuffleTimerRef.current = null;
     }
-    setIsFastShuffle(false);
-  }, []);
+    
+    if (isHoldingRef.current) {
+      // Release from a hold: return to normal state and trigger a final bouncy settle
+      setIsFastShuffle(false);
+      triggerShuffle();
+    } else {
+      // Single click: trigger a normal single shuffle with the perfect bouncy animation
+      triggerShuffle();
+    }
+    
+    isHoldingRef.current = false;
+  }, [triggerShuffle]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
