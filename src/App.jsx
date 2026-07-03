@@ -19,6 +19,8 @@ const MOOD_ICONS = {
   blush: Heart,
 };
 
+const MOOD_ORDER = ['earth', 'ocean', 'sunset', 'forest', 'violet', 'slate', 'neon', 'blush'];
+
 function isColorLight(hex) {
   if (!hex) return false;
   const h = hex.replace('#', '');
@@ -70,6 +72,14 @@ export default function App() {
     root.style.setProperty('--bg-color', isWelcomeState ? '#09090f' : bgDark.hex);
   }, [palette, isWelcomeState]);
 
+  const cycleMood = useCallback(() => {
+    const { activeTheme } = stateRef.current;
+    const currentIndex = MOOD_ORDER.indexOf(activeTheme);
+    const nextIndex = (currentIndex + 1) % MOOD_ORDER.length;
+    const nextTheme = MOOD_ORDER[nextIndex];
+    setActiveTheme(nextTheme);
+  }, []);
+
   const triggerShuffle = useCallback(() => {
     const { palette, size, activeTheme, isWelcomeState, isMoodLocked } = stateRef.current;
     if (isWelcomeState) setIsWelcomeState(false);
@@ -77,9 +87,9 @@ export default function App() {
 
     let nextTheme = activeTheme;
     if (!isMoodLocked) {
-      const keys = Object.keys(MOOD_PRESETS);
-      const filtered = keys.filter(k => k !== activeTheme);
-      nextTheme = filtered[Math.floor(Math.random() * filtered.length)] || activeTheme;
+      const currentIndex = MOOD_ORDER.indexOf(activeTheme);
+      const nextIndex = (currentIndex + 1) % MOOD_ORDER.length;
+      nextTheme = MOOD_ORDER[nextIndex];
       setActiveTheme(nextTheme);
     }
 
@@ -152,24 +162,41 @@ export default function App() {
           transition={SPRING}
           className="fixed top-6 left-6 z-30 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white shadow-lg select-none"
         >
-          {(() => {
-            const Icon = MOOD_ICONS[activeTheme] || Mountain;
-            return <Icon size={13} className="text-white/60 animate-pulse" />;
-          })()}
-          <button
-            onClick={() => {
-              const keys = Object.keys(MOOD_PRESETS);
-              const filtered = keys.filter(k => k !== activeTheme);
-              const next = filtered[Math.floor(Math.random() * filtered.length)] || activeTheme;
-              setActiveTheme(next);
-            }}
-            className="text-[11px] font-bold text-white hover:text-white/80 transition-colors"
-            title="Click to randomize mood"
-          >
-            {MOOD_PRESETS[activeTheme]?.name}
-          </button>
+          <div className="w-4 h-4 flex items-center justify-center">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeTheme}
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.6 }}
+                transition={{ duration: 0.18 }}
+              >
+                {(() => {
+                  const Icon = MOOD_ICONS[activeTheme] || Mountain;
+                  return <Icon size={13} className="text-white/60" />;
+                })()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
           
-          <div className="w-[1px] h-3 bg-white/10 mx-1.5" />
+          <div className="overflow-hidden relative h-4 flex items-center min-w-[100px]">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.button
+                key={activeTheme}
+                initial={{ opacity: 0, x: 12, filter: 'blur(2px)' }}
+                animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, x: -12, filter: 'blur(2px)' }}
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                onClick={cycleMood}
+                className="absolute text-[11px] font-bold text-white hover:text-white/80 transition-colors whitespace-nowrap text-left"
+                title="Click to cycle mood"
+              >
+                {MOOD_PRESETS[activeTheme]?.name}
+              </motion.button>
+            </AnimatePresence>
+          </div>
+          
+          <div className="w-[1px] h-3 bg-white/10 mx-1" />
           
           <button
             onClick={() => setIsMoodLocked(!isMoodLocked)}
