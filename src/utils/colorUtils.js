@@ -113,56 +113,56 @@ export const ROLE_DISPLAY = {
 
 export const MOOD_PRESETS = {
   earth: {
-    name: '🏜 Earth & Clay',
+    name: 'Earth & Clay',
     description: 'Warm, organic. Terracotta, sand, deep browns.',
     seedHueRange: [20, 40],
     baseSatRange: [25, 45],
     secondaryOffset: 170,
   },
   ocean: {
-    name: '🌊 Ocean Depth',
+    name: 'Ocean Depth',
     description: 'Serene, trustworthy. Deep blues and teals.',
     seedHueRange: [195, 225],
     baseSatRange: [40, 65],
     secondaryOffset: 45,
   },
   sunset: {
-    name: '🔥 Sunset Warmth',
+    name: 'Sunset Warmth',
     description: 'Passionate, vibrant. Crimson, coral, amber.',
     seedHueRange: [0, 25],
     baseSatRange: [55, 80],
     secondaryOffset: 180,
   },
   forest: {
-    name: '🌿 Forest Moss',
+    name: 'Forest Moss',
     description: 'Balanced, natural. Deep greens and earthy tones.',
     seedHueRange: [100, 150],
     baseSatRange: [30, 55],
     secondaryOffset: 30,
   },
   violet: {
-    name: '🌌 Violet Dusk',
+    name: 'Violet Dusk',
     description: 'Ethereal, creative. Purple and mauve with golden accent.',
     seedHueRange: [260, 290],
     baseSatRange: [45, 70],
     secondaryOffset: 60,
   },
   slate: {
-    name: '💼 Minimal Slate',
+    name: 'Minimal Slate',
     description: 'Clean, professional. Near-monochrome with subtle tinting.',
     seedHueRange: [200, 220],
     baseSatRange: [8, 20],
     secondaryOffset: 0,
   },
   neon: {
-    name: '⚡ Neon Electric',
+    name: 'Neon Electric',
     description: 'High energy, bold. Vivid saturated tones.',
     seedHueRange: [0, 360],
     baseSatRange: [85, 100],
     secondaryOffset: 180,
   },
   blush: {
-    name: '🌸 Blush & Rose',
+    name: 'Blush & Rose',
     description: 'Soft, feminine. Warm pinks with sage green accent.',
     seedHueRange: [330, 355],
     baseSatRange: [40, 65],
@@ -291,13 +291,6 @@ export function generatePalette(size, moodKey, currentPalette = []) {
     const existingLocked = currentPalette.find(c => c.locked && c.role === role);
     if (existingLocked) {
       newPalette.push({ ...existingLocked });
-      continue;
-    }
-
-    // Also preserve any locked color at this index
-    const indexLocked = currentPalette[i];
-    if (indexLocked && indexLocked.locked) {
-      newPalette.push({ ...indexLocked, role });
       continue;
     }
 

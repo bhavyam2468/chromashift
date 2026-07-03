@@ -91,8 +91,18 @@ export default function App() {
 
   const handleUpdateRole = useCallback((id, role) => {
     setPalette(prev => {
-      const reset = prev.map(c => c.role === role ? { ...c, role: 'primary-neutral' } : c);
-      return reset.map(c => c.id === id ? { ...c, role } : c);
+      const targetColor = prev.find(c => c.id === id);
+      if (!targetColor) return prev;
+      const oldRole = targetColor.role;
+      return prev.map(c => {
+        if (c.id === id) {
+          return { ...c, role };
+        }
+        if (c.role === role) {
+          return { ...c, role: oldRole };
+        }
+        return c;
+      });
     });
   }, []);
 

@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
-import { RefreshCw, Layout, Download, Check, Minus, Plus, X } from 'lucide-react';
+import { RefreshCw, Layout, Download, Check, Minus, Plus, X, ChevronDown, Mountain, Waves, Sunrise, Leaf, Moon, Briefcase, Zap, Heart } from 'lucide-react';
 import { MOOD_PRESETS } from '../utils/colorUtils';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const MOOD_ICONS = {
+  earth: Mountain,
+  ocean: Waves,
+  sunset: Sunrise,
+  forest: Leaf,
+  violet: Moon,
+  slate: Briefcase,
+  neon: Zap,
+  blush: Heart,
+};
 
 export default function ControlPanel({
   size, setSize, activeTheme, setActiveTheme, onShuffle, onOpenTemplates, palette
 }) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [copiedFormat, setCopiedFormat] = useState(null);
+  const [showMoodMenu, setShowMoodMenu] = useState(false);
 
   const exportFormats = {
     css: () => {
@@ -52,14 +64,64 @@ export default function ControlPanel({
           </div>
 
           {/* Mood selector */}
-          <div className="flex flex-col">
-            <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest mb-0.5">Mood</span>
-            <select value={activeTheme} onChange={e => setActiveTheme(e.target.value)}
-              className="bg-transparent border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1 text-xs text-white font-medium focus:outline-none cursor-pointer">
-              {Object.entries(MOOD_PRESETS).map(([key, m]) => (
-                <option key={key} value={key}>{m.name}</option>
-              ))}
-            </select>
+          <div className="flex flex-col relative">
+            <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest mb-1 select-none">Mood</span>
+            
+            <button
+              onClick={() => setShowMoodMenu(v => !v)}
+              className="flex items-center gap-2 border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1 text-xs text-white font-medium bg-transparent transition-colors cursor-pointer"
+            >
+              {(() => {
+                const SelectedIcon = MOOD_ICONS[activeTheme] || Mountain;
+                return <SelectedIcon size={12} className="text-white/70" />;
+              })()}
+              <span>{MOOD_PRESETS[activeTheme]?.name}</span>
+              <ChevronDown size={10} className="opacity-50 ml-1" />
+            </button>
+
+            <AnimatePresence>
+              {showMoodMenu && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setShowMoodMenu(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 6 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    className="absolute left-0 bottom-full mb-2.5 z-30 rounded-xl bg-[#09090f]/95 backdrop-blur-xl border border-white/10 shadow-2xl p-1.5 w-44 text-white flex flex-col gap-0.5"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="px-2.5 py-1 text-[8px] font-black tracking-[0.15em] uppercase text-white/30 border-b border-white/5 mb-1 select-none">
+                      Select Mood
+                    </div>
+                    {Object.entries(MOOD_PRESETS).map(([key, m]) => {
+                      const Icon = MOOD_ICONS[key] || Mountain;
+                      const isSelected = activeTheme === key;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            setActiveTheme(key);
+                            setShowMoodMenu(false);
+                          }}
+                          className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/5 text-left"
+                          style={{
+                            color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.6)',
+                            backgroundColor: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon size={12} className="opacity-70" />
+                            <span>{m.name}</span>
+                          </div>
+                          {isSelected && <Check size={11} className="text-emerald-400" />}
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Actions */}
