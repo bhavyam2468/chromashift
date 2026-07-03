@@ -14,6 +14,27 @@ function isLight(hex) {
   return (0.299 * r + 0.587 * g + 0.114 * b) > 150;
 }
 
+function getNegativeColor(hex, alpha = 1) {
+  if (!hex) return `rgba(255, 255, 255, ${alpha})`;
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  
+  const invR = 255 - r;
+  const invG = 255 - g;
+  const invB = 255 - b;
+  
+  // If difference is too low (e.g. medium gray), fallback to high-contrast black or white
+  const diff = Math.abs(r - invR) + Math.abs(g - invG) + Math.abs(b - invB);
+  if (diff < 180) {
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return yiq >= 128 ? `rgba(0, 0, 0, ${alpha * 0.95})` : `rgba(255, 255, 255, ${alpha * 0.95})`;
+  }
+  
+  return `rgba(${invR}, ${invG}, ${invB}, ${alpha})`;
+}
+
 export default function ColorBar({
   color, index, total, palette = [], transitionStyle = 'cascade', isFastShuffle, onToggleLock, onToggleRoleLock, onUpdateHex, onUpdateRole, onCopy
 }) {
@@ -24,10 +45,10 @@ export default function ColorBar({
   const [justCopied, setJustCopied] = useState(false);
 
   const light = isLight(color.hex);
-  const textColor = light ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.92)';
-  const mutedColor = light ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.4)';
-  const overlayBg = light ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
-  const overlayBorder = light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  const textColor = getNegativeColor(color.hex, 0.92);
+  const mutedColor = getNegativeColor(color.hex, 0.6);
+  const overlayBg = getNegativeColor(color.hex, 0.08);
+  const overlayBorder = getNegativeColor(color.hex, 0.15);
 
   const handleCopy = () => {
     onCopy(color.hex);
