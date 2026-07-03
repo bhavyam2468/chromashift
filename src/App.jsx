@@ -135,89 +135,90 @@ export default function App() {
       <motion.div className="absolute inset-0 pointer-events-none z-0"
         animate={{ background: ambientGradient }} transition={{ duration: 1.8, ease: 'easeInOut' }} />
 
-      {/* Top Header Bar */}
+      {/* Floating Mood Lock (Top Left) */}
       {!isWelcomeState && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.8, x: -20 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          exit={{ opacity: 0, scale: 0.8, x: -20 }}
           transition={SPRING}
-          className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-20 bg-black/30 backdrop-blur-md border-b border-white/5"
+          className="fixed top-6 left-6 z-30 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white shadow-lg select-none"
         >
-          {/* Left: Floating Mood Lock */}
-          <div className="flex items-center gap-2">
-            {(() => {
-              const Icon = MOOD_ICONS[activeTheme] || Mountain;
-              return <Icon size={13} className="text-white/60" />;
-            })()}
-            <button
-              onClick={() => {
-                const keys = Object.keys(MOOD_PRESETS);
-                const filtered = keys.filter(k => k !== activeTheme);
-                const next = filtered[Math.floor(Math.random() * filtered.length)] || activeTheme;
-                setActiveTheme(next);
-              }}
-              className="text-[11px] font-bold text-white hover:text-white/80 transition-colors"
-              title="Click to randomize mood"
-            >
-              {MOOD_PRESETS[activeTheme]?.name}
-            </button>
-            
-            <div className="w-[1px] h-3 bg-white/10 mx-1.5" />
-            
-            <button
-              onClick={() => setIsMoodLocked(!isMoodLocked)}
-              className="p-1 rounded-md hover:bg-white/5 transition-colors"
-              style={{ color: isMoodLocked ? '#34d399' : 'rgba(255,255,255,0.4)' }}
-              title={isMoodLocked ? 'Unlock Mood' : 'Lock Mood'}
-            >
-              {isMoodLocked ? <Lock size={12} /> : <Unlock size={12} />}
-            </button>
-          </div>
+          {(() => {
+            const Icon = MOOD_ICONS[activeTheme] || Mountain;
+            return <Icon size={13} className="text-white/60 animate-pulse" />;
+          })()}
+          <button
+            onClick={() => {
+              const keys = Object.keys(MOOD_PRESETS);
+              const filtered = keys.filter(k => k !== activeTheme);
+              const next = filtered[Math.floor(Math.random() * filtered.length)] || activeTheme;
+              setActiveTheme(next);
+            }}
+            className="text-[11px] font-bold text-white hover:text-white/80 transition-colors"
+            title="Click to randomize mood"
+          >
+            {MOOD_PRESETS[activeTheme]?.name}
+          </button>
+          
+          <div className="w-[1px] h-3 bg-white/10 mx-1.5" />
+          
+          <button
+            onClick={() => setIsMoodLocked(!isMoodLocked)}
+            className="p-1 rounded-md hover:bg-white/5 transition-colors"
+            style={{ color: isMoodLocked ? '#34d399' : 'rgba(255,255,255,0.4)' }}
+            title={isMoodLocked ? 'Unlock Mood' : 'Lock Mood'}
+          >
+            {isMoodLocked ? <Lock size={12} /> : <Unlock size={12} />}
+          </button>
+        </motion.div>
+      )}
 
-          {/* Center: Brand name */}
-          <span className="hidden sm:inline-block text-[10px] font-bold tracking-[0.25em] uppercase text-white/20 select-none">
-            ChromaShift v2
-          </span>
-
-          {/* Right: Help Trigger */}
-          <div className="relative">
-            <button
-              onClick={() => setShowHelp(!showHelp)}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-            >
-              <HelpCircle size={15} />
-            </button>
-            
-            <AnimatePresence>
-              {showHelp && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setShowHelp(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.92, y: 8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.92, y: 8 }}
-                    transition={SPRING}
-                    className="absolute right-0 mt-2 p-5 rounded-2xl bg-[#09090f]/95 backdrop-blur-xl border border-white/10 w-60 shadow-2xl z-35 text-white"
-                  >
-                    <h4 className="font-bold text-sm mb-3 text-white">Quick Controls</h4>
-                    <ul className="space-y-2.5 text-xs text-white/60">
-                      {[
-                        ['Space', 'Shuffle palette'],
-                        ['Click hex', 'Edit color'],
-                        ['Hover bar', 'Lock / tune HSL'],
-                        ['Role tag', 'Assign semantic role'],
-                      ].map(([k, v]) => (
-                        <li key={k} className="flex justify-between items-center">
-                          <span className="font-semibold text-white/80">{k}</span>
-                          <span className="px-2 py-0.5 bg-white/8 border border-white/10 rounded-md text-[10px] font-mono">{v}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+      {/* Floating Help Trigger (Top Right) */}
+      {!isWelcomeState && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, x: 20 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          exit={{ opacity: 0, scale: 0.8, x: 20 }}
+          transition={SPRING}
+          className="fixed top-6 right-6 z-30"
+        >
+          <button
+            onClick={() => setShowHelp(!showHelp)}
+            className="p-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white/60 hover:text-white transition-colors shadow-lg"
+          >
+            <HelpCircle size={15} />
+          </button>
+          
+          <AnimatePresence>
+            {showHelp && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setShowHelp(false)} />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.92, y: 8 }}
+                  transition={SPRING}
+                  className="absolute right-0 mt-2 p-5 rounded-2xl bg-[#09090f]/95 backdrop-blur-xl border border-white/10 w-60 shadow-2xl z-35 text-white"
+                >
+                  <h4 className="font-bold text-sm mb-3 text-white">Quick Controls</h4>
+                  <ul className="space-y-2.5 text-xs text-white/60">
+                    {[
+                      ['Space', 'Shuffle palette'],
+                      ['Click hex', 'Edit color'],
+                      ['Hover bar', 'Lock / tune HSL'],
+                      ['Role tag', 'Assign semantic role'],
+                    ].map(([k, v]) => (
+                      <li key={k} className="flex justify-between items-center">
+                        <span className="font-semibold text-white/80">{k}</span>
+                        <span className="px-2 py-0.5 bg-white/8 border border-white/10 rounded-md text-[10px] font-mono">{v}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
 
@@ -227,7 +228,7 @@ export default function App() {
           <WelcomeScreen key="welcome" onStart={triggerShuffle} />
         ) : (
           <motion.div key="generator"
-            className="flex-1 flex flex-col md:flex-row h-full w-full overflow-hidden relative z-10 pt-16"
+            className="flex-1 flex flex-col md:flex-row h-full w-full overflow-hidden relative z-10"
             initial="hidden" animate="visible" exit="exit"
             variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } }, exit: { transition: { staggerChildren: 0.04, staggerDirection: -1 } } }}>
             {palette.map((color, index) => (

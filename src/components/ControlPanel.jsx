@@ -41,17 +41,30 @@ export default function ControlPanel({
     setTimeout(() => setCopiedFormat(null), 2000);
   };
 
-  // ─── 1. Mobile Layout Render ───
+  // ─── 1. Mobile Layout Render (With Shuffle + Controls Double FAB) ───
   if (isMobile) {
     return (
       <>
-        {/* Floating Action Button (FAB) for Mobile */}
-        <button
-          onClick={() => setShowMobileMenu(true)}
-          className="fixed bottom-4 right-4 z-35 w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-        >
-          <Sliders size={18} />
-        </button>
+        {/* Double FAB Buttons for Mobile (Shuffle on top, Controls below) */}
+        <div className="fixed bottom-4 right-4 z-35 flex flex-col gap-3 md:hidden">
+          {/* Shuffle FAB */}
+          <button
+            onClick={onShuffle}
+            className="w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center active:scale-90 transition-all"
+            title="Shuffle palette"
+          >
+            <RefreshCw size={18} />
+          </button>
+
+          {/* Controls FAB */}
+          <button
+            onClick={() => setShowMobileMenu(true)}
+            className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 text-white shadow-2xl flex items-center justify-center active:scale-90 transition-all"
+            title="Open controls"
+          >
+            <Sliders size={18} />
+          </button>
+        </div>
 
         {/* Mobile Bottom Sheet Drawer */}
         <AnimatePresence>
@@ -101,22 +114,17 @@ export default function ControlPanel({
                   </div>
                 </div>
 
-                {/* Grid of primary actions */}
-                <div className="grid grid-cols-3 gap-2.5 pt-2">
-                  <button onClick={() => { onShuffle(); setShowMobileMenu(false); }}
-                    className="flex flex-col items-center justify-center gap-1.5 bg-white text-black py-3 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95">
-                    <RefreshCw size={14} />
-                    <span>Shuffle</span>
-                  </button>
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
                   <button onClick={() => { onOpenTemplates(); setShowMobileMenu(false); }}
                     className="flex flex-col items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl text-xs font-bold transition-all border border-white/5">
                     <Layout size={14} />
-                    <span>Preview</span>
+                    <span>Preview UI</span>
                   </button>
                   <button onClick={() => { setShowExportModal(true); setShowMobileMenu(false); }}
                     className="flex flex-col items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl text-xs font-bold transition-all border border-white/5">
                     <Download size={14} />
-                    <span>Export</span>
+                    <span>Export Code</span>
                   </button>
                 </div>
               </motion.div>
