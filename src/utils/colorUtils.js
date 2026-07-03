@@ -295,44 +295,65 @@ export function generatePalette(size, moodKey, currentPalette = []) {
   const newPalette = new Array(size);
   const usedRoles = new Set();
 
+  const assignedRoles = new Array(size).fill(null);
+
   // Step 1: Place locked colors at their exact indices
   for (let i = 0; i < size; i++) {
     const existing = currentPalette[i];
     if (existing && existing.locked) {
       newPalette[i] = { ...existing };
+      assignedRoles[i] = existing.role;
       if (existing.role) {
         usedRoles.add(existing.role);
       }
     }
   }
 
-  // Step 2: Fill remaining slots with derived colors
+  // Step 1.5: Reserve roles for slots with roleLocked
+  for (let i = 0; i < size; i++) {
+    if (newPalette[i]) continue;
+    const existing = currentPalette[i];
+    if (existing && existing.roleLocked && existing.role && !usedRoles.has(existing.role)) {
+      assignedRoles[i] = existing.role;
+      usedRoles.add(existing.role);
+    }
+  }
+
+  // Step 2: Determine remaining roles and randomize them
+  const unassignedSlots = [];
+  for (let i = 0; i < size; i++) {
+    if (!assignedRoles[i]) unassignedSlots.push(i);
+  }
+
+  const remainingRoles = [];
+  for (const role of priorityOrder) {
+    if (remainingRoles.length >= unassignedSlots.length) break;
+    if (!usedRoles.has(role)) {
+      remainingRoles.push(role);
+      usedRoles.add(role);
+    }
+  }
+
+  // Fisher-Yates shuffle the remaining roles to randomize semantic placement
+  for (let i = remainingRoles.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [remainingRoles[i], remainingRoles[j]] = [remainingRoles[j], remainingRoles[i]];
+  }
+
+  for (let i = 0; i < unassignedSlots.length; i++) {
+    const slotIdx = unassignedSlots[i];
+    assignedRoles[slotIdx] = remainingRoles[i] || 'primary-neutral';
+  }
+
+  // Step 3: Generate colors for unlocked slots
   for (let i = 0; i < size; i++) {
     if (newPalette[i]) continue; // Already filled by locked color
 
-    // Check if the current slot already had a role/id in currentPalette
     const existingSlot = currentPalette[i];
     const slotId = (existingSlot && existingSlot.id) || Math.random().toString(36).substr(2, 9);
     
-    let assignedRole = null;
-    if (existingSlot && existingSlot.role && !usedRoles.has(existingSlot.role)) {
-      assignedRole = existingSlot.role;
-    } else {
-      // Find the next available role in priority order
-      for (const role of priorityOrder) {
-        if (!usedRoles.has(role)) {
-          assignedRole = role;
-          break;
-        }
-      }
-    }
-    
-    if (!assignedRole) {
-      assignedRole = 'primary-neutral';
-    }
-
-    usedRoles.add(assignedRole);
-    const hsl = derived[assignedRole] || derived['primary-neutral'];
+    const role = assignedRoles[i];
+    const hsl = derived[role] || derived['primary-neutral'];
     const hex = hslToHex(hsl.h, hsl.s, hsl.l);
 
     newPalette[i] = {
@@ -342,7 +363,8 @@ export function generatePalette(size, moodKey, currentPalette = []) {
       s: hsl.s,
       l: hsl.l,
       locked: false,
-      role: assignedRole,
+      roleLocked: existingSlot ? !!existingSlot.roleLocked : false,
+      role: role,
     };
   }
 

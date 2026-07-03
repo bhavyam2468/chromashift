@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Unlock, Sliders, Check, ChevronDown } from 'lucide-react';
 import { ROLE_DISPLAY, hslToHex } from '../utils/colorUtils';
 
-const SPRING = { type: 'spring', stiffness: 350, damping: 18 };
+const SPRING = { type: 'spring', stiffness: 380, damping: 30 };
 
 function isLight(hex) {
   if (!hex) return false;
@@ -15,7 +15,7 @@ function isLight(hex) {
 }
 
 export default function ColorBar({
-  color, index, total, palette = [], transitionStyle = 'cascade', isCycling = false, onToggleLock, onUpdateHex, onUpdateRole, onCopy
+  color, index, total, palette = [], transitionStyle = 'cascade', isFastShuffle, onToggleLock, onToggleRoleLock, onUpdateHex, onUpdateRole, onCopy
 }) {
   const [showSliders, setShowSliders] = useState(false);
   const [isEditingHex, setIsEditingHex] = useState(false);
@@ -52,101 +52,46 @@ export default function ColorBar({
   };
 
   const roleDisplay = ROLE_DISPLAY[color.role];
+
   const isMobileLayout = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
-  // ─── Continuous & Entry/Exit Variant Logic ───
   const getBgVariants = (style, idx) => {
     const isEven = idx % 2 === 0;
+    const fastTransition = { duration: 0.15, ease: 'linear' };
     
-    // 1. Loop animations when user is holding down Space/Shuffle
-    if (isCycling) {
-      switch (style) {
-        case 'crossfade':
-          return {
-            hidden: { filter: 'hue-rotate(0deg)' },
-            visible: {
-              filter: ['hue-rotate(0deg)', 'hue-rotate(360deg)'],
-              transition: { repeat: Infinity, ease: 'linear', duration: 3.5 }
-            },
-            exit: { filter: 'hue-rotate(0deg)' }
-          };
-        case 'cross-slide':
-          if (isMobileLayout) {
-            return {
-              hidden: { x: 0 },
-              visible: {
-                x: isEven ? ['-15%', '15%'] : ['15%', '-15%'],
-                transition: { repeat: Infinity, repeatType: 'reverse', duration: 0.7, ease: 'easeInOut' }
-              },
-              exit: { x: 0 }
-            };
-          } else {
-            return {
-              hidden: { y: 0 },
-              visible: {
-                y: isEven ? ['-15%', '15%'] : ['15%', '-15%'],
-                transition: { repeat: Infinity, repeatType: 'reverse', duration: 0.7, ease: 'easeInOut' }
-              },
-              exit: { y: 0 }
-            };
-          }
-        case 'slide':
-          return {
-            hidden: { y: 0 },
-            visible: {
-              y: ['0%', '-12%', '0%'],
-              transition: { repeat: Infinity, duration: 1.1, ease: 'easeInOut', delay: idx * 0.08 }
-            },
-            exit: { y: 0 }
-          };
-        case 'cascade':
-        default:
-          return {
-            hidden: { scale: 1, filter: 'blur(0px)' },
-            visible: {
-              scale: [1, 0.96, 1],
-              filter: ['blur(0px)', 'blur(3px)', 'blur(0px)'],
-              transition: { repeat: Infinity, duration: 1.2, ease: 'easeInOut', delay: idx * 0.08 }
-            },
-            exit: { scale: 1, filter: 'blur(0px)' }
-          };
-      }
-    }
-
-    // 2. Normal shuffle transitions (when just tapped or on release ease-out)
     switch (style) {
       case 'crossfade':
         return {
           hidden: { opacity: 0 },
-          visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeInOut' } },
-          exit: { opacity: 0, transition: { duration: 0.45, ease: 'easeInOut' } }
+          visible: { opacity: 1, transition: isFastShuffle ? fastTransition : { duration: 0.45, ease: 'easeInOut' } },
+          exit: { opacity: 0, transition: isFastShuffle ? fastTransition : { duration: 0.45, ease: 'easeInOut' } }
         };
       case 'cross-slide':
         if (isMobileLayout) {
           return {
             hidden: { x: isEven ? '100%' : '-100%', opacity: 1 },
-            visible: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 280, damping: 28 } },
-            exit: { x: isEven ? '-100%' : '100%', opacity: 1, transition: { duration: 0.35, ease: 'easeInOut' } }
+            visible: { x: 0, opacity: 1, transition: isFastShuffle ? fastTransition : { type: 'spring', stiffness: 280, damping: 28 } },
+            exit: { x: isEven ? '-100%' : '100%', opacity: 1, transition: isFastShuffle ? fastTransition : { duration: 0.35, ease: 'easeInOut' } }
           };
         } else {
           return {
             hidden: { y: isEven ? '100%' : '-100%', opacity: 1 },
-            visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 280, damping: 28 } },
-            exit: { y: isEven ? '-100%' : '100%', opacity: 1, transition: { duration: 0.35, ease: 'easeInOut' } }
+            visible: { y: 0, opacity: 1, transition: isFastShuffle ? fastTransition : { type: 'spring', stiffness: 280, damping: 28 } },
+            exit: { y: isEven ? '-100%' : '100%', opacity: 1, transition: isFastShuffle ? fastTransition : { duration: 0.35, ease: 'easeInOut' } }
           };
         }
       case 'slide':
         return {
           hidden: { y: '25%', opacity: 0 },
-          visible: { y: 0, opacity: 1, transition: { ...SPRING, delay: idx * 0.04 } },
-          exit: { y: '-25%', opacity: 0, transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
+          visible: { y: 0, opacity: 1, transition: isFastShuffle ? fastTransition : { ...SPRING, delay: idx * 0.04 } },
+          exit: { y: '-25%', opacity: 0, transition: isFastShuffle ? fastTransition : { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
         };
       case 'cascade':
       default:
         return {
           hidden: { scale: 0.95, opacity: 0, filter: 'blur(6px)' },
-          visible: { scale: 1, opacity: 1, filter: 'blur(0px)', transition: { ...SPRING, delay: idx * 0.04 } },
-          exit: { scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
+          visible: { scale: 1, opacity: 1, filter: 'blur(0px)', transition: isFastShuffle ? fastTransition : { ...SPRING, delay: idx * 0.04 } },
+          exit: { scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: isFastShuffle ? fastTransition : { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
         };
     }
   };
@@ -165,7 +110,7 @@ export default function ColorBar({
       {/* Dynamic Background Layer */}
       <AnimatePresence mode="popLayout">
         <motion.div
-          key={isCycling ? 'cycling' : color.hex}
+          key={color.hex}
           variants={bgVariants}
           initial="hidden"
           animate="visible"
@@ -248,8 +193,17 @@ export default function ColorBar({
       {/* ─── Bottom Info (Role / HEX / Copy) ─── */}
       <div className="flex flex-row md:flex-col items-center gap-3 z-10 shrink-0" onClick={e => e.stopPropagation()}>
 
-        {/* Role tag dropdown */}
-        <div className="relative">
+        {/* Role tag dropdown with lock */}
+        <div className="relative flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleRoleLock(color.id); }}
+            className="p-1 md:p-1.5 rounded-md transition-colors hover:bg-black/10"
+            style={{ backgroundColor: color.roleLocked ? (light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)') : 'transparent', color: mutedColor }}
+            title={color.roleLocked ? "Unlock role placement" : "Lock role placement"}
+          >
+            {color.roleLocked ? <Lock size={10} /> : <Unlock size={10} className="opacity-50" />}
+          </button>
+
           <button
             onClick={() => setShowRoleMenu(v => !v)}
             className="flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg transition-colors text-center"
@@ -330,7 +284,7 @@ export default function ColorBar({
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
                 whileTap={{ scale: 0.94 }}
                 onClick={(e) => { e.stopPropagation(); setIsEditingHex(true); setTempHex(color.hex); }}
                 className="absolute font-mono font-bold text-xs md:text-base tracking-wider hover:opacity-70 transition-opacity"
