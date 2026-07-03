@@ -43,8 +43,7 @@ export default function App() {
   const [shuffleKey, setShuffleKey] = useState(0);
   
   const [isFastShuffle, setIsFastShuffle] = useState(false);
-  const holdTimeoutRef = useRef(null);
-  const isHoldingRef = useRef(false);
+  const fastShuffleTimerRef = useRef(null);
   const isSpaceDownRef = useRef(false);
 
   const stateRef = useRef({});
@@ -102,29 +101,21 @@ export default function App() {
   }, []);
 
   const startFastShuffle = useCallback(() => {
-    if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
-    
-    // Set a timeout to activate "hold" state after 250ms
-    holdTimeoutRef.current = setTimeout(() => {
-      isHoldingRef.current = true;
-      setIsFastShuffle(true);
-    }, 250);
-  }, []);
+    if (fastShuffleTimerRef.current) return;
+    setIsFastShuffle(true);
+    triggerShuffle();
+    fastShuffleTimerRef.current = setInterval(() => {
+      triggerShuffle();
+    }, 150);
+  }, [triggerShuffle]);
 
   const stopFastShuffle = useCallback(() => {
-    if (holdTimeoutRef.current) {
-      clearTimeout(holdTimeoutRef.current);
-      holdTimeoutRef.current = null;
+    if (fastShuffleTimerRef.current) {
+      clearInterval(fastShuffleTimerRef.current);
+      fastShuffleTimerRef.current = null;
     }
-    
-    if (isHoldingRef.current) {
-      triggerShuffle();
-      isHoldingRef.current = false;
-      setIsFastShuffle(false);
-    } else {
-      triggerShuffle();
-    }
-  }, [triggerShuffle]);
+    setIsFastShuffle(false);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -205,7 +196,7 @@ export default function App() {
   return (
     <div className="relative w-full h-full overflow-hidden flex flex-col bg-[#09090f]">
       <motion.div className="absolute inset-0 pointer-events-none z-0"
-        animate={{ background: ambientGradient }} transition={{ duration: 1.8, ease: 'easeInOut' }} />
+        animate={{ background: ambientGradient }} transition={{ duration: isFastShuffle ? 0.14 : 1.8, ease: 'easeInOut' }} />
 
       {/* Floating Mood Lock (Top Left) */}
       {!isWelcomeState && (
@@ -240,7 +231,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                transition={{ duration: isFastShuffle ? 0.12 : 0.22, ease: 'easeInOut' }}
                 onClick={cycleMood}
                 className="absolute text-[11px] font-bold text-white hover:text-white/80 transition-colors whitespace-nowrap text-left"
                 title="Click to cycle mood"

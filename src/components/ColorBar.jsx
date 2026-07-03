@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Unlock, Sliders, Check, ChevronDown } from 'lucide-react';
 import { ROLE_DISPLAY, hslToHex } from '../utils/colorUtils';
@@ -33,44 +33,6 @@ function getNegativeColor(hex, alpha = 1) {
   }
   
   return `rgba(${invR}, ${invG}, ${invB}, ${alpha})`;
-}
-
-const animationStyles = `
-@keyframes mid-crossfade {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
-}
-@keyframes mid-cross-slide-y {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 200%; }
-}
-@keyframes mid-cross-slide-x {
-  0% { background-position: 0 0; }
-  100% { background-position: 200% 0; }
-}
-@keyframes mid-slide-y {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-15%); }
-  100% { transform: translateY(0); }
-}
-@keyframes mid-slide-x {
-  0% { transform: translateX(0); }
-  50% { transform: translateX(-15%); }
-  100% { transform: translateX(0); }
-}
-@keyframes mid-cascade {
-  0% { transform: scale(1); filter: blur(0px); }
-  50% { transform: scale(0.94); filter: blur(4px); }
-  100% { transform: scale(1); filter: blur(0px); }
-}
-`;
-
-function generateLoopingGradient(color, direction = 'bottom') {
-  const c1 = `hsl(${color.h}, ${color.s}%, ${color.l}%)`;
-  const c2 = `hsl(${(color.h + 90) % 360}, ${color.s}%, ${color.l}%)`;
-  const c3 = `hsl(${(color.h + 180) % 360}, ${color.s}%, ${color.l}%)`;
-  const c4 = `hsl(${(color.h + 270) % 360}, ${color.s}%, ${color.l}%)`;
-  return `linear-gradient(to ${direction}, ${c1}, ${c2}, ${c3}, ${c4}, ${c1})`;
 }
 
 export default function ColorBar({
@@ -111,182 +73,246 @@ export default function ColorBar({
   };
 
   const roleDisplay = ROLE_DISPLAY[color.role];
-
   const isMobileLayout = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
-
-  useEffect(() => {
-    const id = 'chromashift-animation-styles';
-    if (!document.getElementById(id)) {
-      const style = document.createElement('style');
-      style.id = id;
-      style.appendChild(document.createTextNode(animationStyles));
-      document.head.appendChild(style);
-    }
-  }, []);
-
-  const getBackgroundStyle = () => {
-    if (!isFastShuffle) return { backgroundColor: color.hex };
-
-    switch (transitionStyle) {
-      case 'crossfade':
-        return {
-          backgroundColor: color.hex,
-          animation: 'mid-crossfade 2.5s linear infinite'
-        };
-      case 'cross-slide':
-        return {
-          background: generateLoopingGradient(color, isMobileLayout ? 'right' : 'bottom'),
-          backgroundSize: isMobileLayout ? '200% 100%' : '100% 200%',
-          animation: `${isMobileLayout ? 'mid-cross-slide-x' : 'mid-cross-slide-y'} 1.5s linear infinite`
-        };
-      case 'slide':
-        return {
-          backgroundColor: color.hex,
-          animation: `${isMobileLayout ? 'mid-slide-x' : 'mid-slide-y'} 0.8s ease-in-out infinite`,
-          animationDelay: `${index * 0.08}s`
-        };
-      case 'cascade':
-        return {
-          backgroundColor: color.hex,
-          animation: 'mid-cascade 0.8s ease-in-out infinite',
-          animationDelay: `${index * 0.05}s`
-        };
-      default:
-        return { backgroundColor: color.hex };
-    }
-  };
 
   const getBgVariants = (style, idx) => {
     const isEven = idx % 2 === 0;
+    
+    // Fast shuffle settings to prevent pile-up jitter
+    const fastDur = 0.14;
+    const fastTransitionVisible = { duration: fastDur, ease: 'linear' };
+    const fastTransitionExit = { duration: 0 };
     
     switch (style) {
       case 'crossfade':
         return {
           hidden: { opacity: 0 },
-          visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeInOut' } },
-          exit: { opacity: 0, transition: { duration: 0.45, ease: 'easeInOut' } }
+          visible: { 
+            opacity: 1, 
+            transition: isFastShuffle ? fastTransitionVisible : { duration: 0.45, ease: 'easeInOut' } 
+          },
+          exit: { 
+            opacity: 0, 
+            transition: isFastShuffle ? fastTransitionExit : { duration: 0.45, ease: 'easeInOut' } 
+          }
         };
+        
       case 'cross-slide': {
         const originX = isEven ? '100%' : '-100%';
         const destX = isEven ? '-100%' : '100%';
         const originY = isEven ? '100%' : '-100%';
         const destY = isEven ? '-100%' : '100%';
         
-        const dur = 0.45;
-        const scaleKeyframesVisible = [0.8, 0.8, 1.06, 1];
-        const scaleTimesVisible = [0, 0.45, 0.85, 1];
-        const scaleKeyframesExit = [1, 0.8, 0.8];
-        const scaleTimesExit = [0, 0.35, 1];
-        
-        if (isMobileLayout) {
-          return {
-            hidden: { x: originX, scale: 0.8, opacity: 1 },
-            visible: {
-              x: 0,
-              scale: scaleKeyframesVisible,
-              opacity: 1,
-              transition: {
-                x: { duration: dur, ease: 'easeInOut' },
-                scale: { duration: dur, times: scaleTimesVisible, ease: 'easeInOut' }
+        if (isFastShuffle) {
+          if (isMobileLayout) {
+            return {
+              hidden: { x: originX, scale: 0.85, opacity: 1 },
+              visible: {
+                x: 0,
+                scale: 1,
+                opacity: 1,
+                transition: {
+                  x: { duration: fastDur, ease: 'easeOut' },
+                  scale: { duration: fastDur, ease: 'easeOut' }
+                }
+              },
+              exit: {
+                x: destX,
+                scale: 0.85,
+                opacity: 0,
+                transition: fastTransitionExit
               }
-            },
-            exit: {
-              x: destX,
-              scale: scaleKeyframesExit,
-              opacity: 1,
-              transition: {
-                x: { duration: dur, ease: 'easeInOut' },
-                scale: { duration: dur, times: scaleTimesExit, ease: 'easeInOut' }
+            };
+          } else {
+            return {
+              hidden: { y: originY, scale: 0.85, opacity: 1 },
+              visible: {
+                y: 0,
+                scale: 1,
+                opacity: 1,
+                transition: {
+                  y: { duration: fastDur, ease: 'easeOut' },
+                  scale: { duration: fastDur, ease: 'easeOut' }
+                }
+              },
+              exit: {
+                y: destY,
+                scale: 0.85,
+                opacity: 0,
+                transition: fastTransitionExit
               }
-            }
-          };
+            };
+          }
         } else {
-          return {
-            hidden: { y: originY, scale: 0.8, opacity: 1 },
-            visible: {
-              y: 0,
-              scale: scaleKeyframesVisible,
-              opacity: 1,
-              transition: {
-                y: { duration: dur, ease: 'easeInOut' },
-                scale: { duration: dur, times: scaleTimesVisible, ease: 'easeInOut' }
+          // Normal cross-slide with scale down -> push slide -> scale up overshoot sequence
+          const dur = 0.45;
+          if (isMobileLayout) {
+            return {
+              hidden: { x: originX, scale: 0.8, opacity: 1 },
+              visible: {
+                x: [originX, originX, 0, 0],
+                scale: [0.8, 0.8, 1.06, 1],
+                opacity: 1,
+                transition: {
+                  x: { duration: dur, times: [0, 0.3, 0.8, 1], ease: 'easeInOut' },
+                  scale: { duration: dur, times: [0, 0.3, 0.8, 1], ease: 'easeInOut' }
+                }
+              },
+              exit: {
+                x: [0, 0, destX],
+                scale: [1, 0.8, 0.8],
+                opacity: 1,
+                transition: {
+                  x: { duration: dur, times: [0, 0.3, 1], ease: 'easeInOut' },
+                  scale: { duration: dur, times: [0, 0.3, 1], ease: 'easeInOut' }
+                }
               }
-            },
-            exit: {
-              y: destY,
-              scale: scaleKeyframesExit,
-              opacity: 1,
-              transition: {
-                y: { duration: dur, ease: 'easeInOut' },
-                scale: { duration: dur, times: scaleTimesExit, ease: 'easeInOut' }
+            };
+          } else {
+            return {
+              hidden: { y: originY, scale: 0.8, opacity: 1 },
+              visible: {
+                y: [originY, originY, 0, 0],
+                scale: [0.8, 0.8, 1.06, 1],
+                opacity: 1,
+                transition: {
+                  y: { duration: dur, times: [0, 0.3, 0.8, 1], ease: 'easeInOut' },
+                  scale: { duration: dur, times: [0, 0.3, 0.8, 1], ease: 'easeInOut' }
+                }
+              },
+              exit: {
+                y: [0, 0, destY],
+                scale: [1, 0.8, 0.8],
+                opacity: 1,
+                transition: {
+                  y: { duration: dur, times: [0, 0.3, 1], ease: 'easeInOut' },
+                  scale: { duration: dur, times: [0, 0.3, 1], ease: 'easeInOut' }
+                }
               }
-            }
-          };
+            };
+          }
         }
       }
+      
       case 'slide': {
         const originVal = '40%';
         const destVal = '-40%';
-        const staggerVisible = idx * 0.035;
-        const staggerExit = idx * 0.015;
-
-        if (isMobileLayout) {
+        
+        if (isFastShuffle) {
+          const staggerVisible = idx * 0.01;
+          if (isMobileLayout) {
+            return {
+              hidden: { x: originVal, scale: 0.92, opacity: 0 },
+              visible: {
+                x: 0,
+                scale: 1,
+                opacity: 1,
+                transition: { duration: fastDur, ease: 'easeOut', delay: staggerVisible }
+              },
+              exit: {
+                x: destVal,
+                scale: 0.92,
+                opacity: 0,
+                transition: fastTransitionExit
+              }
+            };
+          } else {
+            return {
+              hidden: { y: originVal, scale: 0.92, opacity: 0 },
+              visible: {
+                y: 0,
+                scale: 1,
+                opacity: 1,
+                transition: { duration: fastDur, ease: 'easeOut', delay: staggerVisible }
+              },
+              exit: {
+                y: destVal,
+                scale: 0.92,
+                opacity: 0,
+                transition: fastTransitionExit
+              }
+            };
+          }
+        } else {
+          const staggerVisible = idx * 0.035;
+          const staggerExit = idx * 0.015;
+          if (isMobileLayout) {
+            return {
+              hidden: { x: originVal, scale: 0.92, opacity: 0 },
+              visible: {
+                x: 0,
+                scale: 1,
+                opacity: 1,
+                transition: {
+                  x: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
+                  scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
+                  opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
+                }
+              },
+              exit: {
+                x: destVal,
+                scale: 0.92,
+                opacity: 0,
+                transition: {
+                  x: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
+                  scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
+                  opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
+                }
+              }
+            };
+          } else {
+            return {
+              hidden: { y: originVal, scale: 0.92, opacity: 0 },
+              visible: {
+                y: 0,
+                scale: 1,
+                opacity: 1,
+                transition: {
+                  y: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
+                  scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
+                  opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
+                }
+              },
+              exit: {
+                y: destVal,
+                scale: 0.92,
+                opacity: 0,
+                transition: {
+                  y: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
+                  scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
+                  opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
+                }
+              }
+            };
+          }
+        }
+      }
+      
+      case 'cascade':
+      default: {
+        if (isFastShuffle) {
+          const staggerVisible = idx * 0.01;
           return {
-            hidden: { x: originVal, scale: 0.92, opacity: 0 },
+            hidden: { scale: 0.95, opacity: 0 },
             visible: {
-              x: 0,
               scale: 1,
               opacity: 1,
-              transition: {
-                x: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
-                scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
-                opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
-              }
+              transition: { duration: fastDur, ease: 'easeOut', delay: staggerVisible }
             },
             exit: {
-              x: destVal,
-              scale: 0.92,
+              scale: 0.95,
               opacity: 0,
-              transition: {
-                x: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
-                scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
-                opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
-              }
+              transition: fastTransitionExit
             }
           };
         } else {
           return {
-            hidden: { y: originVal, scale: 0.92, opacity: 0 },
-            visible: {
-              y: 0,
-              scale: 1,
-              opacity: 1,
-              transition: {
-                y: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
-                scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
-                opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
-              }
-            },
-            exit: {
-              y: destVal,
-              scale: 0.92,
-              opacity: 0,
-              transition: {
-                y: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
-                scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
-                opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
-              }
-            }
+            hidden: { scale: 0.95, opacity: 0, filter: 'blur(6px)' },
+            visible: { scale: 1, opacity: 1, filter: 'blur(0px)', transition: { ...SPRING, delay: idx * 0.04 } },
+            exit: { scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
           };
         }
       }
-      case 'cascade':
-      default:
-        return {
-          hidden: { scale: 0.95, opacity: 0, filter: 'blur(6px)' },
-          visible: { scale: 1, opacity: 1, filter: 'blur(0px)', transition: { ...SPRING, delay: idx * 0.04 } },
-          exit: { scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
-        };
     }
   };
 
@@ -297,65 +323,173 @@ export default function ColorBar({
       layout
       whileHover={{ flex: 1.3 }}
       transition={{ flex: { type: 'spring', stiffness: 260, damping: 28 } }}
-      className="relative flex flex-row md:flex-col justify-between items-center px-4 py-2 md:py-8 md:px-3 h-full w-full group overflow-hidden cursor-pointer"
+      className="relative flex flex-row md:flex-col justify-between items-center h-full w-full group overflow-hidden cursor-pointer"
       style={{ flex: 1, minWidth: 0 }}
       onClick={!isEditingHex && !showRoleMenu && !showSliders ? handleCopy : undefined}
     >
-      {/* Dynamic Background Layer */}
+      {/* Background layer + all text labels / icons are nested inside for synchronized transitions */}
       <AnimatePresence mode="popLayout">
         <motion.div
-          key={isFastShuffle ? 'fast-shuffling' : color.hex}
+          key={color.hex}
           variants={bgVariants}
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="absolute inset-0 z-0"
-          style={getBackgroundStyle()}
-        />
+          className="absolute inset-0 flex flex-row md:flex-col justify-between items-center px-4 py-2 md:py-8 md:px-3 h-full w-full z-0 select-none"
+          style={{ backgroundColor: color.hex }}
+        >
+          {/* Shimmer overlay */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10"
+            style={{ background: `linear-gradient(135deg, ${light ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'} 0%, transparent 50%)` }}
+          />
+
+          {/* Lock indicator stripe */}
+          {color.locked && (
+            <motion.div
+              className="absolute top-0 left-0 bottom-0 w-1 md:w-auto md:h-1 md:right-0 z-10"
+              style={{ backgroundColor: light ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.35)' }}
+              initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={SPRING}
+            />
+          )}
+
+          {/* ─── Controls (Lock/Sliders) ─── */}
+          <div
+            className="flex flex-row md:flex-col items-center gap-1.5 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <motion.button whileTap={{ scale: 0.85 }} onClick={() => onToggleLock(color.id)}
+              className="p-2 md:p-2.5 rounded-xl transition-colors" style={{ backgroundColor: overlayBg, color: textColor }}>
+              {color.locked ? <Lock size={14} /> : <Unlock size={14} />}
+            </motion.button>
+
+            <motion.button whileTap={{ scale: 0.85 }} onClick={() => setShowSliders(v => !v)}
+              className="p-2 md:p-2.5 rounded-xl transition-colors" style={{ backgroundColor: showSliders ? overlayBorder : overlayBg, color: textColor }}>
+              <Sliders size={14} />
+            </motion.button>
+          </div>
+
+          {/* ─── Bottom Info (Role / HEX / Copy) ─── */}
+          <div className="flex flex-row md:flex-col items-center gap-3 z-10 shrink-0" onClick={e => e.stopPropagation()}>
+            
+            {/* Role tag dropdown with lock */}
+            <div className="relative flex items-center gap-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleRoleLock(color.id); }}
+                className="p-1 md:p-1.5 rounded-md transition-colors hover:bg-black/10"
+                style={{ backgroundColor: color.roleLocked ? (light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)') : 'transparent', color: mutedColor }}
+                title={color.roleLocked ? "Unlock role placement" : "Lock role placement"}
+              >
+                {color.roleLocked ? <Lock size={10} /> : <Unlock size={10} className="opacity-50" />}
+              </button>
+
+              <button
+                onClick={() => setShowRoleMenu(v => !v)}
+                className="flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg transition-colors text-center"
+                style={{ backgroundColor: overlayBg, color: mutedColor }}
+              >
+                {roleDisplay ? (
+                  <span className="text-[8px] md:text-[9px] font-black tracking-[0.1em] uppercase leading-tight">
+                    {roleDisplay.prefix.slice(0, 4)}·{roleDisplay.suffix}
+                  </span>
+                ) : (
+                  <span className="text-[8px] font-bold uppercase opacity-50">Role</span>
+                )}
+                <ChevronDown size={10} className="opacity-60" />
+              </button>
+
+              <AnimatePresence>
+                {showRoleMenu && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setShowRoleMenu(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.92, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.92, y: 6 }} transition={SPRING}
+                      className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-30 rounded-2xl shadow-2xl overflow-hidden"
+                      style={{ width: 170, backgroundColor: light ? '#fff' : '#18182b', border: `1px solid ${overlayBorder}` }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <div className="px-3 py-2 text-[9px] font-black tracking-[0.15em] uppercase border-b"
+                        style={{ color: mutedColor, borderColor: overlayBorder }}>
+                        Assign Role
+                      </div>
+
+                      {['primary', 'secondary', 'background'].map(prefix => (
+                        <div key={prefix}>
+                          {['light', 'neutral', 'dark'].map(suffix => {
+                            const role = `${prefix}-${suffix}`;
+                            const display = ROLE_DISPLAY[role];
+                            const isActive = color.role === role;
+                            const isTaken = palette.some(c => c.role === role && c.id !== color.id);
+                            return (
+                              <button key={role}
+                                disabled={isTaken}
+                                onClick={() => { onUpdateRole(color.id, role); setShowRoleMenu(false); }}
+                                className={`flex items-center justify-between w-full px-3 py-1.5 text-[10px] font-semibold transition-colors ${isTaken ? 'opacity-35 cursor-not-allowed' : ''}`}
+                                style={{
+                                  color: textColor,
+                                  backgroundColor: isActive ? overlayBg : 'transparent',
+                                }}
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  {display.prefix} {display.suffix}
+                                  {isTaken && <span className="text-[7px] opacity-40 uppercase tracking-wider font-bold">(In Use)</span>}
+                                </span>
+                                {isActive && <Check size={10} className="opacity-60" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* HEX text display */}
+            {isEditingHex ? (
+              <form onSubmit={handleHexSubmit} onClick={e => e.stopPropagation()}>
+                <input type="text" value={tempHex}
+                  onChange={e => setTempHex(e.target.value)} onBlur={handleHexSubmit} autoFocus
+                  className="bg-transparent text-center font-mono font-bold text-xs md:text-sm tracking-wider w-20 border-b focus:outline-none"
+                  style={{ color: textColor, borderBottomColor: mutedColor }} />
+              </form>
+            ) : (
+              <div className="overflow-hidden relative h-5 flex items-center justify-center min-w-[70px]">
+                <span className="font-mono font-bold text-xs md:text-base tracking-wider" style={{ color: textColor }}>
+                  {color.hex.toUpperCase()}
+                </span>
+              </div>
+            )}
+
+            {/* Copy confirmation feedback (Desktop-only hint) */}
+            <div className="hidden md:block min-h-[14px]">
+              {justCopied ? (
+                <span className="text-[9px] font-bold flex items-center gap-1" style={{ color: mutedColor }}>
+                  Copied
+                </span>
+              ) : (
+                <span className="text-[9px] opacity-0 group-hover:opacity-50 transition-opacity" style={{ color: mutedColor }}>
+                  Copy
+                </span>
+              )}
+            </div>
+          </div>
+        </motion.div>
       </AnimatePresence>
 
-      {/* Shimmer */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10"
-        style={{ background: `linear-gradient(135deg, ${light ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'} 0%, transparent 50%)` }}
-      />
-
-      {/* Lock indicator stripe */}
-      {color.locked && (
-        <motion.div
-          className="absolute top-0 left-0 bottom-0 w-1 md:w-auto md:h-1 md:right-0 z-10"
-          style={{ backgroundColor: light ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.35)' }}
-          initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={SPRING}
-        />
-      )}
-
-      {/* ─── Controls (Lock/Sliders) ─── */}
-      <div
-        className="flex flex-row md:flex-col items-center gap-1.5 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
-        onClick={e => e.stopPropagation()}
-      >
-        <motion.button whileTap={{ scale: 0.85 }} onClick={() => onToggleLock(color.id)}
-          className="p-2 md:p-2.5 rounded-xl transition-colors" style={{ backgroundColor: overlayBg, color: textColor }}>
-          {color.locked ? <Lock size={14} /> : <Unlock size={14} />}
-        </motion.button>
-
-        <motion.button whileTap={{ scale: 0.85 }} onClick={() => setShowSliders(v => !v)}
-          className="p-2 md:p-2.5 rounded-xl transition-colors" style={{ backgroundColor: showSliders ? overlayBorder : overlayBg, color: textColor }}>
-          <Sliders size={14} />
-        </motion.button>
-      </div>
-
-      {/* ─── HSL Sliders ─── */}
+      {/* ─── HSL Sliders (Kept in parent to prevent containing block bugs) ─── */}
       <AnimatePresence>
         {showSliders && (
           <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowSliders(false)} />
+            <div className="fixed inset-0 z-20" onClick={() => setShowSliders(false)} />
             <motion.div
               initial={{ x: "-50%", opacity: 0, y: 10, scale: 0.95 }}
               animate={{ x: "-50%", opacity: 1, y: 0, scale: 1 }}
               exit={{ x: "-50%", opacity: 0, y: 10, scale: 0.95 }}
               transition={SPRING}
-              className="absolute left-1/2 top-12 md:top-1/4 z-20 w-[95%] max-w-[220px] rounded-2xl p-4 shadow-2xl"
+              className="absolute left-1/2 top-12 md:top-1/4 z-30 w-[95%] max-w-[220px] rounded-2xl p-4 shadow-2xl"
               style={{ backgroundColor: light ? 'rgba(255,255,255,0.94)' : 'rgba(12,12,20,0.94)',
                 backdropFilter: 'blur(16px)', border: `1px solid ${overlayBorder}`, color: textColor }}
               onClick={e => e.stopPropagation()}
@@ -383,131 +517,6 @@ export default function ColorBar({
           </>
         )}
       </AnimatePresence>
-
-      {/* ─── Bottom Info (Role / HEX / Copy) ─── */}
-      <div className="flex flex-row md:flex-col items-center gap-3 z-10 shrink-0" onClick={e => e.stopPropagation()}>
-
-        {/* Role tag dropdown with lock */}
-        <div className="relative flex items-center gap-1">
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleRoleLock(color.id); }}
-            className="p-1 md:p-1.5 rounded-md transition-colors hover:bg-black/10"
-            style={{ backgroundColor: color.roleLocked ? (light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)') : 'transparent', color: mutedColor }}
-            title={color.roleLocked ? "Unlock role placement" : "Lock role placement"}
-          >
-            {color.roleLocked ? <Lock size={10} /> : <Unlock size={10} className="opacity-50" />}
-          </button>
-
-          <button
-            onClick={() => setShowRoleMenu(v => !v)}
-            className="flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg transition-colors text-center"
-            style={{ backgroundColor: overlayBg, color: mutedColor }}
-          >
-            {roleDisplay ? (
-              <span className="text-[8px] md:text-[9px] font-black tracking-[0.1em] uppercase leading-tight">
-                {roleDisplay.prefix.slice(0, 4)}·{roleDisplay.suffix}
-              </span>
-            ) : (
-              <span className="text-[8px] font-bold uppercase opacity-50">Role</span>
-            )}
-            <ChevronDown size={10} className="opacity-60" />
-          </button>
-
-          <AnimatePresence>
-            {showRoleMenu && (
-              <>
-                <div className="fixed inset-0 z-20" onClick={() => setShowRoleMenu(false)} />
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.92, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.92, y: 6 }} transition={SPRING}
-                  className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-30 rounded-2xl shadow-2xl overflow-hidden"
-                  style={{ width: 170, backgroundColor: light ? '#fff' : '#18182b', border: `1px solid ${overlayBorder}` }}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="px-3 py-2 text-[9px] font-black tracking-[0.15em] uppercase border-b"
-                    style={{ color: mutedColor, borderColor: overlayBorder }}>
-                    Assign Role
-                  </div>
-
-                  {['primary', 'secondary', 'background'].map(prefix => (
-                    <div key={prefix}>
-                      {['light', 'neutral', 'dark'].map(suffix => {
-                        const role = `${prefix}-${suffix}`;
-                        const display = ROLE_DISPLAY[role];
-                        const isActive = color.role === role;
-                        const isTaken = palette.some(c => c.role === role && c.id !== color.id);
-                        return (
-                          <button key={role}
-                            disabled={isTaken}
-                            onClick={() => { onUpdateRole(color.id, role); setShowRoleMenu(false); }}
-                            className={`flex items-center justify-between w-full px-3 py-1.5 text-[10px] font-semibold transition-colors ${isTaken ? 'opacity-35 cursor-not-allowed' : ''}`}
-                            style={{
-                              color: textColor,
-                              backgroundColor: isActive ? overlayBg : 'transparent',
-                            }}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              {display.prefix} {display.suffix}
-                              {isTaken && <span className="text-[7px] opacity-40 uppercase tracking-wider font-bold">(In Use)</span>}
-                            </span>
-                            {isActive && <Check size={10} className="opacity-60" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* HEX text */}
-        {isEditingHex ? (
-          <form onSubmit={handleHexSubmit} onClick={e => e.stopPropagation()}>
-            <input type="text" value={tempHex}
-              onChange={e => setTempHex(e.target.value)} onBlur={handleHexSubmit} autoFocus
-              className="bg-transparent text-center font-mono font-bold text-xs md:text-sm tracking-wider w-20 border-b focus:outline-none"
-              style={{ color: textColor, borderBottomColor: mutedColor }} />
-          </form>
-        ) : (
-          <div className="overflow-hidden relative h-5 flex items-center justify-center min-w-[70px]">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.button
-                key={color.hex}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                whileTap={{ scale: 0.94 }}
-                onClick={(e) => { e.stopPropagation(); setIsEditingHex(true); setTempHex(color.hex); }}
-                className="absolute font-mono font-bold text-xs md:text-base tracking-wider hover:opacity-70 transition-opacity"
-                style={{ color: textColor }}>
-                {color.hex.toUpperCase()}
-              </motion.button>
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* Copy confirmation feedback (Desktop-only hint) */}
-        <div className="hidden md:block min-h-[14px]">
-          <AnimatePresence mode="wait">
-            {justCopied ? (
-              <motion.span key="copied" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }} className="text-[9px] font-bold flex items-center gap-1"
-                style={{ color: mutedColor }}>
-                Copied
-              </motion.span>
-            ) : (
-              <motion.span key="hint" initial={{ opacity: 0 }} animate={{ opacity: 0.5 }}
-                exit={{ opacity: 0 }} className="text-[9px] opacity-0 group-hover:opacity-50 transition-opacity"
-                style={{ color: mutedColor }}>
-                Copy
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
     </motion.div>
   );
 }
