@@ -15,7 +15,7 @@ function isLight(hex) {
 }
 
 export default function ColorBar({
-  color, index, total, palette = [], onToggleLock, onUpdateHex, onUpdateRole, onCopy
+  color, index, total, palette = [], transitionStyle = 'cascade', onToggleLock, onUpdateHex, onUpdateRole, onCopy
 }) {
   const [showSliders, setShowSliders] = useState(false);
   const [isEditingHex, setIsEditingHex] = useState(false);
@@ -53,17 +53,49 @@ export default function ColorBar({
 
   const roleDisplay = ROLE_DISPLAY[color.role];
 
-  const barVariants = {
-    hidden: { opacity: 0, scale: 0.95, filter: 'blur(8px)' },
-    visible: {
-      opacity: 1, scale: 1, filter: 'blur(0px)',
-      transition: { ...SPRING, delay: index * 0.05 }
-    },
-    exit: {
-      opacity: 0, scale: 0.95, filter: 'blur(6px)',
-      transition: { duration: 0.2, ease: [0.4, 0, 1, 1], delay: index * 0.02 }
+  const getVariants = (style, idx) => {
+    switch (style) {
+      case 'fade':
+        return {
+          hidden: { opacity: 0, scale: 1, filter: 'blur(0px)', y: 0 },
+          visible: {
+            opacity: 1, scale: 1, filter: 'blur(0px)', y: 0,
+            transition: { duration: 0.4, ease: 'easeInOut', delay: idx * 0.05 }
+          },
+          exit: {
+            opacity: 0, scale: 1, filter: 'blur(0px)', y: 0,
+            transition: { duration: 0.3, ease: 'easeInOut', delay: idx * 0.02 }
+          }
+        };
+      case 'slide':
+        return {
+          hidden: { opacity: 0, y: '20%', scale: 1, filter: 'blur(0px)' },
+          visible: {
+            opacity: 1, y: 0, scale: 1, filter: 'blur(0px)',
+            transition: { ...SPRING, delay: idx * 0.05 }
+          },
+          exit: {
+            opacity: 0, y: '-20%', scale: 1, filter: 'blur(0px)',
+            transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 }
+          }
+        };
+      case 'cascade':
+      default:
+        return {
+          hidden: { opacity: 0, scale: 0.95, filter: 'blur(8px)', y: 0 },
+          visible: {
+            opacity: 1, scale: 1, filter: 'blur(0px)', y: 0,
+            transition: { ...SPRING, delay: idx * 0.05 }
+          },
+          exit: {
+            opacity: 0, scale: 0.95, filter: 'blur(6px)', y: 0,
+            transition: { duration: 0.2, ease: [0.4, 0, 1, 1], delay: idx * 0.02 }
+          }
+        };
     }
   };
+
+  const barVariants = getVariants(transitionStyle, index);
 
   return (
     <motion.div

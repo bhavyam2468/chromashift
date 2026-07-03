@@ -32,6 +32,7 @@ export default function App() {
   const [size, setSize] = useState(5);
   const [activeTheme, setActiveTheme] = useState('earth');
   const [isMoodLocked, setIsMoodLocked] = useState(false);
+  const [transitionStyle, setTransitionStyle] = useState('cascade');
   const [palette, setPalette] = useState([]);
   const [isWelcomeState, setIsWelcomeState] = useState(true);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
@@ -234,7 +235,7 @@ export default function App() {
             {palette.map((color, index) => (
               <ColorBar key={`${color.id}-${shuffleKey}`}
                 color={color} index={index} total={palette.length}
-                palette={palette}
+                palette={palette} transitionStyle={transitionStyle}
                 onToggleLock={handleToggleLock} onUpdateHex={handleUpdateHex}
                 onUpdateRole={handleUpdateRole} onCopy={handleCopyColor} />
             ))}
@@ -248,7 +249,8 @@ export default function App() {
             exit={{ y: 100, opacity: 0 }} transition={{ ...SPRING, delay: 0.4 }} className="relative z-30">
             <ControlPanel size={size} setSize={setSize} activeTheme={activeTheme}
               setActiveTheme={setActiveTheme} onShuffle={triggerShuffle}
-              onOpenTemplates={() => setIsTemplatesOpen(true)} palette={palette} />
+              onOpenTemplates={() => setIsTemplatesOpen(true)} palette={palette} 
+              transitionStyle={transitionStyle} setTransitionStyle={setTransitionStyle} />
           </motion.div>
         )}
       </AnimatePresence>

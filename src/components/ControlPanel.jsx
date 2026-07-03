@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Layout, Download, Check, Minus, Plus, X, Sliders } from 'lucide-react';
+import { RefreshCw, Layout, Download, Check, Minus, Plus, X, Sliders, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ControlPanel({
-  size, setSize, activeTheme, setActiveTheme, onShuffle, onOpenTemplates, palette
+  size, setSize, activeTheme, setActiveTheme, onShuffle, onOpenTemplates, palette, transitionStyle, setTransitionStyle
 }) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [copiedFormat, setCopiedFormat] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [showTransitionMenu, setShowTransitionMenu] = useState(false);
   
   // Responsive check
   const [isMobile, setIsMobile] = useState(false);
@@ -111,6 +112,54 @@ export default function ControlPanel({
                   </div>
                 </div>
 
+                {/* Transition style toggler on mobile */}
+                <div className="flex justify-between items-center relative">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/40">Shuffle Effect</span>
+                  <button
+                    onClick={() => setShowTransitionMenu(v => !v)}
+                    className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white font-medium bg-white/5 capitalize"
+                  >
+                    <span>{transitionStyle}</span>
+                    <ChevronDown size={10} className="opacity-50" />
+                  </button>
+
+                  <AnimatePresence>
+                    {showTransitionMenu && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setShowTransitionMenu(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                          className="absolute right-0 bottom-full mb-2 z-40 rounded-xl bg-[#12121e] border border-white/10 shadow-2xl p-1.5 w-36 flex flex-col gap-0.5 text-left"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {['cascade', 'fade', 'slide'].map(style => {
+                            const isSelected = transitionStyle === style;
+                            return (
+                              <button
+                                key={style}
+                                onClick={() => {
+                                  setTransitionStyle(style);
+                                  setShowTransitionMenu(false);
+                                }}
+                                className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-xs font-medium capitalize"
+                                style={{
+                                  color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.6)',
+                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
+                                }}
+                              >
+                                <span>{style}</span>
+                                {isSelected && <Check size={11} className="text-emerald-400" />}
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+
                 {/* Actions */}
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <button onClick={() => { onOpenTemplates(); setShowMobileMenu(false); }}
@@ -141,7 +190,7 @@ export default function ControlPanel({
   return (
     <>
       <motion.div
-        className="fixed bottom-0 left-1/2 z-30 w-[95%] max-w-lg pb-4 pt-10"
+        className="fixed bottom-0 left-1/2 z-30 w-[95%] max-w-xl pb-4 pt-10"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         animate={{ x: "-50%", y: isHovered ? 0 : 54 }}
@@ -165,6 +214,62 @@ export default function ControlPanel({
               className="w-7 h-7 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/8 transition-colors disabled:opacity-30">
               <Plus size={14} />
             </button>
+          </div>
+
+          {/* Vertical divider */}
+          <div className="w-[1px] h-6 bg-white/10" />
+
+          {/* Transition Selector */}
+          <div className="flex flex-col relative">
+            <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest mb-1 select-none">Effect</span>
+            
+            <button
+              onClick={() => setShowTransitionMenu(v => !v)}
+              className="flex items-center gap-1 border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1 text-xs text-white font-medium bg-transparent transition-colors cursor-pointer capitalize"
+            >
+              <span>{transitionStyle}</span>
+              <ChevronDown size={10} className="opacity-50 ml-0.5" />
+            </button>
+
+            <AnimatePresence>
+              {showTransitionMenu && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setShowTransitionMenu(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 6 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    className="absolute left-0 bottom-full mb-2.5 z-30 rounded-xl bg-[#09090f]/95 backdrop-blur-xl border border-white/10 shadow-2xl p-1.5 w-32 text-white flex flex-col gap-0.5"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="px-2.5 py-1 text-[8px] font-black tracking-[0.15em] uppercase text-white/30 border-b border-white/5 mb-1 select-none">
+                      Select Effect
+                    </div>
+                    {['cascade', 'fade', 'slide'].map(style => {
+                      const isSelected = transitionStyle === style;
+                      return (
+                        <button
+                          key={style}
+                          onClick={() => {
+                            setTransitionStyle(style);
+                            setShowTransitionMenu(false);
+                          }}
+                          className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/5 text-left capitalize"
+                          style={{
+                            color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.6)',
+                            backgroundColor: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
+                          }}
+                        >
+                          <span>{style}</span>
+                          {isSelected && <Check size={11} className="text-emerald-400" />}
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Vertical divider */}
