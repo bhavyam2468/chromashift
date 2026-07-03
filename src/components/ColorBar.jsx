@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Unlock, Sliders, Check, ChevronDown } from 'lucide-react';
 import { ROLE_DISPLAY, hslToHex } from '../utils/colorUtils';
@@ -33,6 +33,44 @@ function getNegativeColor(hex, alpha = 1) {
   }
   
   return `rgba(${invR}, ${invG}, ${invB}, ${alpha})`;
+}
+
+const animationStyles = `
+@keyframes mid-crossfade {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+@keyframes mid-cross-slide-y {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 200%; }
+}
+@keyframes mid-cross-slide-x {
+  0% { background-position: 0 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes mid-slide-y {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-15%); }
+  100% { transform: translateY(0); }
+}
+@keyframes mid-slide-x {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-15%); }
+  100% { transform: translateX(0); }
+}
+@keyframes mid-cascade {
+  0% { transform: scale(1); filter: blur(0px); }
+  50% { transform: scale(0.94); filter: blur(4px); }
+  100% { transform: scale(1); filter: blur(0px); }
+}
+`;
+
+function generateLoopingGradient(color, direction = 'bottom') {
+  const c1 = `hsl(${color.h}, ${color.s}%, ${color.l}%)`;
+  const c2 = `hsl(${(color.h + 90) % 360}, ${color.s}%, ${color.l}%)`;
+  const c3 = `hsl(${(color.h + 180) % 360}, ${color.s}%, ${color.l}%)`;
+  const c4 = `hsl(${(color.h + 270) % 360}, ${color.s}%, ${color.l}%)`;
+  return `linear-gradient(to ${direction}, ${c1}, ${c2}, ${c3}, ${c4}, ${c1})`;
 }
 
 export default function ColorBar({
@@ -76,16 +114,57 @@ export default function ColorBar({
 
   const isMobileLayout = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
+  useEffect(() => {
+    const id = 'chromashift-animation-styles';
+    if (!document.getElementById(id)) {
+      const style = document.createElement('style');
+      style.id = id;
+      style.appendChild(document.createTextNode(animationStyles));
+      document.head.appendChild(style);
+    }
+  }, []);
+
+  const getBackgroundStyle = () => {
+    if (!isFastShuffle) return { backgroundColor: color.hex };
+
+    switch (transitionStyle) {
+      case 'crossfade':
+        return {
+          backgroundColor: color.hex,
+          animation: 'mid-crossfade 2.5s linear infinite'
+        };
+      case 'cross-slide':
+        return {
+          background: generateLoopingGradient(color, isMobileLayout ? 'right' : 'bottom'),
+          backgroundSize: isMobileLayout ? '200% 100%' : '100% 200%',
+          animation: `${isMobileLayout ? 'mid-cross-slide-x' : 'mid-cross-slide-y'} 1.5s linear infinite`
+        };
+      case 'slide':
+        return {
+          backgroundColor: color.hex,
+          animation: `${isMobileLayout ? 'mid-slide-x' : 'mid-slide-y'} 0.8s ease-in-out infinite`,
+          animationDelay: `${index * 0.08}s`
+        };
+      case 'cascade':
+        return {
+          backgroundColor: color.hex,
+          animation: 'mid-cascade 0.8s ease-in-out infinite',
+          animationDelay: `${index * 0.05}s`
+        };
+      default:
+        return { backgroundColor: color.hex };
+    }
+  };
+
   const getBgVariants = (style, idx) => {
     const isEven = idx % 2 === 0;
-    const fastTransition = { duration: 0.15, ease: 'linear' };
     
     switch (style) {
       case 'crossfade':
         return {
           hidden: { opacity: 0 },
-          visible: { opacity: 1, transition: isFastShuffle ? fastTransition : { duration: 0.45, ease: 'easeInOut' } },
-          exit: { opacity: 0, transition: isFastShuffle ? fastTransition : { duration: 0.45, ease: 'easeInOut' } }
+          visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeInOut' } },
+          exit: { opacity: 0, transition: { duration: 0.45, ease: 'easeInOut' } }
         };
       case 'cross-slide': {
         const originX = isEven ? '100%' : '-100%';
@@ -93,54 +172,52 @@ export default function ColorBar({
         const originY = isEven ? '100%' : '-100%';
         const destY = isEven ? '-100%' : '100%';
         
-        const dur = isFastShuffle ? 0.2 : 0.45;
-        const scaleKeyframesVisible = isFastShuffle ? [0.85, 0.85, 1] : [0.8, 0.8, 1.06, 1];
-        const scaleTimesVisible = isFastShuffle ? [0, 0.4, 1] : [0, 0.45, 0.85, 1];
-        const posTimesVisible = isFastShuffle ? [0, 0.8, 1] : [0, 0.85, 1];
-        
-        const scaleKeyframesExit = isFastShuffle ? [1, 0.85, 0.85] : [1, 0.8, 0.8];
-        const scaleTimesExit = isFastShuffle ? [0, 0.4, 1] : [0, 0.35, 1];
+        const dur = 0.45;
+        const scaleKeyframesVisible = [0.8, 0.8, 1.06, 1];
+        const scaleTimesVisible = [0, 0.45, 0.85, 1];
+        const scaleKeyframesExit = [1, 0.8, 0.8];
+        const scaleTimesExit = [0, 0.35, 1];
         
         if (isMobileLayout) {
           return {
-            hidden: { x: originX, scale: isFastShuffle ? 0.85 : 0.8, opacity: 1 },
+            hidden: { x: originX, scale: 0.8, opacity: 1 },
             visible: {
-              x: [originX, 0, 0],
+              x: 0,
               scale: scaleKeyframesVisible,
               opacity: 1,
               transition: {
-                x: { duration: dur, times: posTimesVisible, ease: 'easeOut' },
+                x: { duration: dur, ease: 'easeInOut' },
                 scale: { duration: dur, times: scaleTimesVisible, ease: 'easeInOut' }
               }
             },
             exit: {
-              x: [0, 0, destX],
+              x: destX,
               scale: scaleKeyframesExit,
               opacity: 1,
               transition: {
-                x: { duration: dur, times: [0, 0.3, 1], ease: 'easeIn' },
+                x: { duration: dur, ease: 'easeInOut' },
                 scale: { duration: dur, times: scaleTimesExit, ease: 'easeInOut' }
               }
             }
           };
         } else {
           return {
-            hidden: { y: originY, scale: isFastShuffle ? 0.85 : 0.8, opacity: 1 },
+            hidden: { y: originY, scale: 0.8, opacity: 1 },
             visible: {
-              y: [originY, 0, 0],
+              y: 0,
               scale: scaleKeyframesVisible,
               opacity: 1,
               transition: {
-                y: { duration: dur, times: posTimesVisible, ease: 'easeOut' },
+                y: { duration: dur, ease: 'easeInOut' },
                 scale: { duration: dur, times: scaleTimesVisible, ease: 'easeInOut' }
               }
             },
             exit: {
-              y: [0, 0, destY],
+              y: destY,
               scale: scaleKeyframesExit,
               opacity: 1,
               transition: {
-                y: { duration: dur, times: [0, 0.3, 1], ease: 'easeIn' },
+                y: { duration: dur, ease: 'easeInOut' },
                 scale: { duration: dur, times: scaleTimesExit, ease: 'easeInOut' }
               }
             }
@@ -150,9 +227,8 @@ export default function ColorBar({
       case 'slide': {
         const originVal = '40%';
         const destVal = '-40%';
-        const staggerVisible = isFastShuffle ? idx * 0.01 : idx * 0.035;
-        const staggerExit = isFastShuffle ? idx * 0.005 : idx * 0.015;
-        const fastTransition = { duration: 0.18, ease: 'easeOut' };
+        const staggerVisible = idx * 0.035;
+        const staggerExit = idx * 0.015;
 
         if (isMobileLayout) {
           return {
@@ -161,7 +237,7 @@ export default function ColorBar({
               x: 0,
               scale: 1,
               opacity: 1,
-              transition: isFastShuffle ? fastTransition : {
+              transition: {
                 x: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
                 scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
                 opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
@@ -171,7 +247,7 @@ export default function ColorBar({
               x: destVal,
               scale: 0.92,
               opacity: 0,
-              transition: isFastShuffle ? { duration: 0.15, ease: 'easeIn' } : {
+              transition: {
                 x: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
                 scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
                 opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
@@ -185,7 +261,7 @@ export default function ColorBar({
               y: 0,
               scale: 1,
               opacity: 1,
-              transition: isFastShuffle ? fastTransition : {
+              transition: {
                 y: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
                 scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
                 opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
@@ -195,7 +271,7 @@ export default function ColorBar({
               y: destVal,
               scale: 0.92,
               opacity: 0,
-              transition: isFastShuffle ? { duration: 0.15, ease: 'easeIn' } : {
+              transition: {
                 y: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
                 scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
                 opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
@@ -208,8 +284,8 @@ export default function ColorBar({
       default:
         return {
           hidden: { scale: 0.95, opacity: 0, filter: 'blur(6px)' },
-          visible: { scale: 1, opacity: 1, filter: 'blur(0px)', transition: isFastShuffle ? fastTransition : { ...SPRING, delay: idx * 0.04 } },
-          exit: { scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: isFastShuffle ? fastTransition : { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
+          visible: { scale: 1, opacity: 1, filter: 'blur(0px)', transition: { ...SPRING, delay: idx * 0.04 } },
+          exit: { scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
         };
     }
   };
@@ -228,13 +304,13 @@ export default function ColorBar({
       {/* Dynamic Background Layer */}
       <AnimatePresence mode="popLayout">
         <motion.div
-          key={color.hex}
+          key={isFastShuffle ? 'fast-shuffling' : color.hex}
           variants={bgVariants}
           initial="hidden"
           animate="visible"
           exit="exit"
           className="absolute inset-0 z-0"
-          style={{ backgroundColor: color.hex }}
+          style={getBackgroundStyle()}
         />
       </AnimatePresence>
 

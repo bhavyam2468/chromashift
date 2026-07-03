@@ -43,7 +43,8 @@ export default function App() {
   const [shuffleKey, setShuffleKey] = useState(0);
   
   const [isFastShuffle, setIsFastShuffle] = useState(false);
-  const fastShuffleTimerRef = useRef(null);
+  const holdTimeoutRef = useRef(null);
+  const isHoldingRef = useRef(false);
   const isSpaceDownRef = useRef(false);
 
   const stateRef = useRef({});
@@ -101,21 +102,29 @@ export default function App() {
   }, []);
 
   const startFastShuffle = useCallback(() => {
-    if (fastShuffleTimerRef.current) return;
-    setIsFastShuffle(true);
-    triggerShuffle();
-    fastShuffleTimerRef.current = setInterval(() => {
-      triggerShuffle();
-    }, 150);
-  }, [triggerShuffle]);
+    if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
+    
+    // Set a timeout to activate "hold" state after 250ms
+    holdTimeoutRef.current = setTimeout(() => {
+      isHoldingRef.current = true;
+      setIsFastShuffle(true);
+    }, 250);
+  }, []);
 
   const stopFastShuffle = useCallback(() => {
-    if (fastShuffleTimerRef.current) {
-      clearInterval(fastShuffleTimerRef.current);
-      fastShuffleTimerRef.current = null;
+    if (holdTimeoutRef.current) {
+      clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
     }
-    setIsFastShuffle(false);
-  }, []);
+    
+    if (isHoldingRef.current) {
+      triggerShuffle();
+      isHoldingRef.current = false;
+      setIsFastShuffle(false);
+    } else {
+      triggerShuffle();
+    }
+  }, [triggerShuffle]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
