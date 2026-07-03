@@ -6,7 +6,7 @@ import ControlPanel from './components/ControlPanel';
 import TemplatePreview from './components/TemplatePreview';
 import { generatePalette, MOOD_PRESETS, hexToHsl, hslToHex } from './utils/colorUtils';
 
-const SPRING = { type: 'spring', stiffness: 380, damping: 30 };
+const SPRING = { type: 'spring', stiffness: 350, damping: 18 };
 
 const MOOD_ICONS = {
   earth: Mountain,
@@ -244,7 +244,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 12, rotateX: 45, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -12, rotateX: -45, scale: 0.95 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
                 onClick={cycleMood}
                 className="absolute text-[11px] font-bold text-white hover:text-white/80 transition-colors whitespace-nowrap text-left"
                 style={{ transformOrigin: 'center center -10px' }}

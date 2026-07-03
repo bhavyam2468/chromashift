@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Unlock, Sliders, Check, ChevronDown } from 'lucide-react';
 import { ROLE_DISPLAY, hslToHex } from '../utils/colorUtils';
 
-const SPRING = { type: 'spring', stiffness: 380, damping: 30 };
+const SPRING = { type: 'spring', stiffness: 350, damping: 18 };
 
 function isLight(hex) {
   if (!hex) return false;
@@ -330,7 +330,7 @@ export default function ColorBar({
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
                 whileTap={{ scale: 0.94 }}
                 onClick={(e) => { e.stopPropagation(); setIsEditingHex(true); setTempHex(color.hex); }}
                 className="absolute font-mono font-bold text-xs md:text-base tracking-wider hover:opacity-70 transition-opacity"
