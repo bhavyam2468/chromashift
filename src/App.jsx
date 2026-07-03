@@ -116,7 +116,7 @@ export default function App() {
       // Start continuous shuffling
       fastShuffleTimerRef.current = setInterval(() => {
         triggerShuffle();
-      }, 150);
+      }, 350);
     }, 250); // 250ms threshold
   }, [triggerShuffle]);
 
