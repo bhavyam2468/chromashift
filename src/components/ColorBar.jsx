@@ -66,20 +66,66 @@ export default function ColorBar({
           visible: { opacity: 1, transition: isFastShuffle ? fastTransition : { duration: 0.45, ease: 'easeInOut' } },
           exit: { opacity: 0, transition: isFastShuffle ? fastTransition : { duration: 0.45, ease: 'easeInOut' } }
         };
-      case 'cross-slide':
+      case 'cross-slide': {
+        const originX = isEven ? '100%' : '-100%';
+        const destX = isEven ? '-100%' : '100%';
+        const originY = isEven ? '100%' : '-100%';
+        const destY = isEven ? '-100%' : '100%';
+        
+        const dur = isFastShuffle ? 0.2 : 0.45;
+        const scaleKeyframesVisible = isFastShuffle ? [0.85, 0.85, 1] : [0.8, 0.8, 1.06, 1];
+        const scaleTimesVisible = isFastShuffle ? [0, 0.4, 1] : [0, 0.45, 0.85, 1];
+        const posTimesVisible = isFastShuffle ? [0, 0.8, 1] : [0, 0.85, 1];
+        
+        const scaleKeyframesExit = isFastShuffle ? [1, 0.85, 0.85] : [1, 0.8, 0.8];
+        const scaleTimesExit = isFastShuffle ? [0, 0.4, 1] : [0, 0.35, 1];
+        
         if (isMobileLayout) {
           return {
-            hidden: { x: isEven ? '100%' : '-100%', opacity: 1 },
-            visible: { x: 0, opacity: 1, transition: isFastShuffle ? fastTransition : { type: 'spring', stiffness: 280, damping: 28 } },
-            exit: { x: isEven ? '-100%' : '100%', opacity: 1, transition: isFastShuffle ? fastTransition : { duration: 0.35, ease: 'easeInOut' } }
+            hidden: { x: originX, scale: isFastShuffle ? 0.85 : 0.8, opacity: 1 },
+            visible: {
+              x: [originX, 0, 0],
+              scale: scaleKeyframesVisible,
+              opacity: 1,
+              transition: {
+                x: { duration: dur, times: posTimesVisible, ease: 'easeOut' },
+                scale: { duration: dur, times: scaleTimesVisible, ease: 'easeInOut' }
+              }
+            },
+            exit: {
+              x: [0, 0, destX],
+              scale: scaleKeyframesExit,
+              opacity: 1,
+              transition: {
+                x: { duration: dur, times: [0, 0.3, 1], ease: 'easeIn' },
+                scale: { duration: dur, times: scaleTimesExit, ease: 'easeInOut' }
+              }
+            }
           };
         } else {
           return {
-            hidden: { y: isEven ? '100%' : '-100%', opacity: 1 },
-            visible: { y: 0, opacity: 1, transition: isFastShuffle ? fastTransition : { type: 'spring', stiffness: 280, damping: 28 } },
-            exit: { y: isEven ? '-100%' : '100%', opacity: 1, transition: isFastShuffle ? fastTransition : { duration: 0.35, ease: 'easeInOut' } }
+            hidden: { y: originY, scale: isFastShuffle ? 0.85 : 0.8, opacity: 1 },
+            visible: {
+              y: [originY, 0, 0],
+              scale: scaleKeyframesVisible,
+              opacity: 1,
+              transition: {
+                y: { duration: dur, times: posTimesVisible, ease: 'easeOut' },
+                scale: { duration: dur, times: scaleTimesVisible, ease: 'easeInOut' }
+              }
+            },
+            exit: {
+              y: [0, 0, destY],
+              scale: scaleKeyframesExit,
+              opacity: 1,
+              transition: {
+                y: { duration: dur, times: [0, 0.3, 1], ease: 'easeIn' },
+                scale: { duration: dur, times: scaleTimesExit, ease: 'easeInOut' }
+              }
+            }
           };
         }
+      }
       case 'slide':
         return {
           hidden: { y: '25%', opacity: 0 },
