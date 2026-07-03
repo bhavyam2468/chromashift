@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { RefreshCw, Layout, Download, Check, Minus, Plus, X, ChevronDown, Mountain, Waves, Sunrise, Leaf, Moon, Briefcase, Zap, Heart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { RefreshCw, Layout, Download, Check, Minus, Plus, X, ChevronDown, Mountain, Waves, Sunrise, Leaf, Moon, Briefcase, Zap, Heart, Sliders } from 'lucide-react';
 import { MOOD_PRESETS } from '../utils/colorUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -20,6 +20,18 @@ export default function ControlPanel({
   const [showExportModal, setShowExportModal] = useState(false);
   const [copiedFormat, setCopiedFormat] = useState(null);
   const [showMoodMenu, setShowMoodMenu] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // Responsive check
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const exportFormats = {
     css: () => {
@@ -42,11 +54,167 @@ export default function ControlPanel({
     setTimeout(() => setCopiedFormat(null), 2000);
   };
 
+  // ─── 1. Mobile Layout Render ───
+  if (isMobile) {
+    return (
+      <>
+        {/* Floating Action Button (FAB) for Mobile */}
+        <button
+          onClick={() => setShowMobileMenu(true)}
+          className="fixed bottom-4 right-4 z-30 w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+        >
+          <Sliders size={18} />
+        </button>
+
+        {/* Mobile Bottom Sheet Drawer */}
+        <AnimatePresence>
+          {showMobileMenu && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowMobileMenu(false)}
+                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+              />
+
+              {/* Bottom Sheet */}
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="fixed bottom-0 left-0 right-0 z-50 bg-[#09090f]/95 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl p-6 shadow-2xl flex flex-col gap-6 text-white"
+              >
+                {/* Header */}
+                <div className="flex justify-between items-center border-b border-white/5 pb-3">
+                  <div className="flex flex-col">
+                    <h3 className="text-sm font-bold">ChromaShift Controls</h3>
+                    <p className="text-[10px] text-white/40">Adjust size, mood, or export palette</p>
+                  </div>
+                  <button onClick={() => setShowMobileMenu(false)} className="p-1.5 rounded-full bg-white/5 hover:bg-white/10">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Size */}
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/40">Palette Size</span>
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => size > 3 && setSize(size - 1)} disabled={size <= 3}
+                      className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70 disabled:opacity-30">
+                      <Minus size={14} />
+                    </button>
+                    <span className="text-base font-black tabular-nums">{size}</span>
+                    <button onClick={() => size < 9 && setSize(size + 1)} disabled={size >= 9}
+                      className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70 disabled:opacity-30">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mood selector */}
+                <div className="flex justify-between items-center relative">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/40">Mood Preset</span>
+                  <button
+                    onClick={() => setShowMoodMenu(v => !v)}
+                    className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white font-medium bg-white/5"
+                  >
+                    {(() => {
+                      const SelectedIcon = MOOD_ICONS[activeTheme] || Mountain;
+                      return <SelectedIcon size={12} className="text-white/70" />;
+                    })()}
+                    <span>{MOOD_PRESETS[activeTheme]?.name}</span>
+                    <ChevronDown size={10} className="opacity-50" />
+                  </button>
+
+                  <AnimatePresence>
+                    {showMoodMenu && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setShowMoodMenu(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                          className="absolute right-0 bottom-full mb-2 z-40 rounded-xl bg-[#12121e] border border-white/10 shadow-2xl p-1.5 w-44 flex flex-col gap-0.5"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {Object.entries(MOOD_PRESETS).map(([key, m]) => {
+                            const Icon = MOOD_ICONS[key] || Mountain;
+                            const isSelected = activeTheme === key;
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => {
+                                  setActiveTheme(key);
+                                  setShowMoodMenu(false);
+                                }}
+                                className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-xs font-medium"
+                                style={{
+                                  color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.6)',
+                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Icon size={12} className="opacity-70" />
+                                  <span>{m.name}</span>
+                                </div>
+                                {isSelected && <Check size={11} className="text-emerald-400" />}
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Grid of primary actions */}
+                <div className="grid grid-cols-3 gap-2.5 pt-2">
+                  <button onClick={() => { onShuffle(); setShowMobileMenu(false); }}
+                    className="flex flex-col items-center justify-center gap-1.5 bg-white text-black py-3 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95">
+                    <RefreshCw size={14} />
+                    <span>Shuffle</span>
+                  </button>
+                  <button onClick={() => { onOpenTemplates(); setShowMobileMenu(false); }}
+                    className="flex flex-col items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl text-xs font-bold transition-all border border-white/5">
+                    <Layout size={14} />
+                    <span>Preview</span>
+                  </button>
+                  <button onClick={() => { setShowExportModal(true); setShowMobileMenu(false); }}
+                    className="flex flex-col items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl text-xs font-bold transition-all border border-white/5">
+                    <Download size={14} />
+                    <span>Export</span>
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Share Export Modal on mobile (so it launches successfully from mobile sheet drawer) */}
+        <AnimatePresence>
+          {showExportModal && <ExportModal {...{ showExportModal, setShowExportModal, handleCopy, copiedFormat, exportFormats }} />}
+        </AnimatePresence>
+      </>
+    );
+  }
+
+  // ─── 2. Desktop Layout Render (Sinks down, comes up on hover) ───
   return (
     <>
-      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 w-[95%] max-w-2xl">
-        <div className="bg-black/60 backdrop-blur-2xl border border-white/8 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+      <motion.div
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 z-30 w-[95%] max-w-2xl pb-4 pt-10"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        animate={{ y: isHovered ? 0 : 54 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+      >
+        {/* Hover activation trigger handle */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-14 h-1.5 rounded-full bg-white/15 hover:bg-white/30 transition-colors cursor-pointer select-none" />
 
+        <div className="bg-black/60 backdrop-blur-2xl border border-white/8 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-3 px-5 py-3 select-none">
           {/* Size adjuster */}
           <div className="flex items-center gap-2.5">
             <button onClick={() => size > 3 && setSize(size - 1)} disabled={size <= 3}
@@ -142,45 +310,50 @@ export default function ControlPanel({
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Export Modal */}
       <AnimatePresence>
-        {showExportModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowExportModal(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl bg-neutral-950/95 backdrop-blur-xl border border-white/10 shadow-2xl z-10 p-6 text-white">
-              <button onClick={() => setShowExportModal(false)} className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10">
-                <X size={18} />
-              </button>
-              <h3 className="text-xl font-bold mb-1">Export Palette</h3>
-              <p className="text-xs text-white/40 mb-5">Copy your palette as code.</p>
-
-              {[
-                { key: 'css', label: 'CSS Custom Properties' },
-                { key: 'tailwind', label: 'Tailwind Config' },
-                { key: 'json', label: 'JSON' },
-              ].map(({ key, label }) => (
-                <div key={key} className="mb-4">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-xs font-bold uppercase tracking-wider text-white/50">{label}</span>
-                    <button onClick={() => handleCopy(key)}
-                      className="text-xs flex items-center gap-1.5 text-white/70 hover:text-white py-1 px-2.5 rounded-lg hover:bg-white/5">
-                      {copiedFormat === key ? <><Check size={12} className="text-emerald-400" /> Copied!</> : <><Download size={12} /> Copy</>}
-                    </button>
-                  </div>
-                  <pre className="p-3 bg-black/40 border border-white/5 rounded-xl text-[11px] font-mono overflow-x-auto text-white/80">
-                    {exportFormats[key]()}
-                  </pre>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-        )}
+        {showExportModal && <ExportModal {...{ showExportModal, setShowExportModal, handleCopy, copiedFormat, exportFormats }} />}
       </AnimatePresence>
     </>
+  );
+}
+
+// ─── Sub-Component for Export Code ───
+function ExportModal({ setShowExportModal, handleCopy, copiedFormat, exportFormats }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={() => setShowExportModal(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl bg-neutral-950/95 backdrop-blur-xl border border-white/10 shadow-2xl z-50 p-6 text-white">
+        <button onClick={() => setShowExportModal(false)} className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10">
+          <X size={18} />
+        </button>
+        <h3 className="text-xl font-bold mb-1">Export Palette</h3>
+        <p className="text-xs text-white/40 mb-5">Copy your palette as code.</p>
+
+        {[
+          { key: 'css', label: 'CSS Custom Properties' },
+          { key: 'tailwind', label: 'Tailwind Config' },
+          { key: 'json', label: 'JSON' },
+        ].map(({ key, label }) => (
+          <div key={key} className="mb-4">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-white/50">{label}</span>
+              <button onClick={() => handleCopy(key)}
+                className="text-xs flex items-center gap-1.5 text-white/70 hover:text-white py-1 px-2.5 rounded-lg hover:bg-white/5">
+                {copiedFormat === key ? <><Check size={12} className="text-emerald-400" /> Copied!</> : <><Download size={12} /> Copy</>}
+              </button>
+            </div>
+            <pre className="p-3 bg-black/40 border border-white/5 rounded-xl text-[11px] font-mono overflow-x-auto text-white/80">
+              {exportFormats[key]()}
+            </pre>
+          </div>
+        ))}
+      </motion.div>
+    </div>
   );
 }

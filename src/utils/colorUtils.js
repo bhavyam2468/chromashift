@@ -279,78 +279,66 @@ export function generatePalette(size, moodKey, currentPalette = []) {
   // Generate the full 9-color derived set
   const derived = derive9Colors(seedHue, baseSat, mood.secondaryOffset);
 
-  // Pick which roles to assign based on size
-  const roleOrder = selectRolesForSize(size, currentPalette);
+  // Priority order for filling roles
+  const priorityOrder = [
+    'primary-neutral',
+    'background-light',
+    'background-dark',
+    'primary-light',
+    'primary-dark',
+    'secondary-neutral',
+    'secondary-light',
+    'secondary-dark',
+    'background-neutral',
+  ];
 
-  // Build the palette array
-  const newPalette = [];
+  const newPalette = new Array(size);
+  const usedRoles = new Set();
+
+  // Step 1: Place locked colors at their exact indices
   for (let i = 0; i < size; i++) {
-    const role = roleOrder[i];
+    const existing = currentPalette[i];
+    if (existing && existing.locked) {
+      newPalette[i] = { ...existing };
+      if (existing.role) {
+        usedRoles.add(existing.role);
+      }
+    }
+  }
 
-    // Preserve locked colors
-    const existingLocked = currentPalette.find(c => c.locked && c.role === role);
-    if (existingLocked) {
-      newPalette.push({ ...existingLocked });
-      continue;
+  // Step 2: Fill remaining slots with derived colors
+  for (let i = 0; i < size; i++) {
+    if (newPalette[i]) continue; // Already filled by locked color
+
+    // Find the next available role in priority order
+    let assignedRole = null;
+    for (const role of priorityOrder) {
+      if (!usedRoles.has(role)) {
+        assignedRole = role;
+        break;
+      }
+    }
+    
+    if (!assignedRole) {
+      assignedRole = 'primary-neutral';
     }
 
-    const hsl = derived[role] || derived['primary-neutral'];
+    usedRoles.add(assignedRole);
+    const hsl = derived[assignedRole] || derived['primary-neutral'];
     const hex = hslToHex(hsl.h, hsl.s, hsl.l);
 
-    newPalette.push({
+    newPalette[i] = {
       id: Math.random().toString(36).substr(2, 9),
       hex,
       h: hsl.h,
       s: hsl.s,
       l: hsl.l,
       locked: false,
-      role,
-    });
+      role: assignedRole,
+    };
   }
 
   return newPalette;
-}
-
-/**
- * Selects which roles to assign based on palette size.
- * Respects any existing locked role assignments.
- */
-function selectRolesForSize(size, currentPalette) {
-  // If we have existing locked roles, preserve them
-  const lockedRoles = currentPalette
-    .filter(c => c.locked && c.role)
-    .map(c => c.role);
-
-  // Priority order: essential roles first
-  const priorityOrder = [
-    'primary-neutral',      // 1 - always
-    'background-light',     // 2 - always
-    'background-dark',      // 3 - always
-    'primary-light',        // 4
-    'primary-dark',         // 5
-    'secondary-neutral',    // 6
-    'secondary-light',      // 7
-    'secondary-dark',       // 8
-    'background-neutral',   // 9
-  ];
-
-  const selected = [];
-
-  // First, add locked roles in their current order
-  for (const role of lockedRoles) {
-    if (!selected.includes(role) && selected.length < size) {
-      selected.push(role);
-    }
-  }
-
-  // Fill remaining slots with priority order
-  for (const role of priorityOrder) {
-    if (!selected.includes(role) && selected.length < size) {
-      selected.push(role);
-    }
-  }
-
-  return selected;
 }
 
 // ─── Template Preview Helpers ─────────────────────────────────────────────────
