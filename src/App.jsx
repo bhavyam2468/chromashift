@@ -42,8 +42,13 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [shuffleKey, setShuffleKey] = useState(0);
 
+  // Cycling states
+  const [isCycling, setIsCycling] = useState(false);
+  const holdTimeoutRef = useRef(null);
+  const isHoldingRef = useRef(false);
+
   const stateRef = useRef({});
-  stateRef.current = { palette, size, activeTheme, isWelcomeState, isMoodLocked };
+  stateRef.current = { palette, size, activeTheme, isWelcomeState, isMoodLocked, isCycling };
 
   // Generate initial palette
   useEffect(() => {
@@ -96,14 +101,66 @@ export default function App() {
     setPalette(generatePalette(size, nextTheme, palette));
   }, []);
 
+  // ─── Desktop Keydown Hold Triggers ───
+  const handleSpaceDown = useCallback((e) => {
+    if (e.code !== 'Space') return;
+    e.preventDefault();
+    if (e.repeat) return; // ignore repeated browser keydowns
+    
+    isHoldingRef.current = true;
+    
+    // Start hold delay (e.g. 180ms)
+    holdTimeoutRef.current = setTimeout(() => {
+      if (isHoldingRef.current) {
+        setIsCycling(true);
+      }
+    }, 180);
+  }, []);
+
+  const handleSpaceUp = useCallback((e) => {
+    if (e.code !== 'Space') return;
+    e.preventDefault();
+    
+    clearTimeout(holdTimeoutRef.current);
+    isHoldingRef.current = false;
+    
+    const { isCycling: currentlyCycling } = stateRef.current;
+    
+    if (currentlyCycling) {
+      setIsCycling(false);
+      triggerShuffle();
+    } else {
+      triggerShuffle();
+    }
+  }, [triggerShuffle]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       const tag = document.activeElement?.tagName;
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(tag) || document.activeElement?.isContentEditable) return;
-      if (e.code === 'Space') { e.preventDefault(); triggerShuffle(); }
+      handleSpaceDown(e);
+    };
+    const handleKeyUp = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(tag) || document.activeElement?.isContentEditable) return;
+      handleSpaceUp(e);
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [handleSpaceDown, handleSpaceUp]);
+
+  // ─── Button Touch/Click Hold Helpers ───
+  const startCycling = useCallback(() => {
+    setIsCycling(true);
+  }, []);
+
+  const stopCycling = useCallback(() => {
+    setIsCycling(false);
+    triggerShuffle();
   }, [triggerShuffle]);
 
   const handleToggleLock = useCallback((id) => {
@@ -179,16 +236,18 @@ export default function App() {
             </AnimatePresence>
           </div>
           
-          <div className="overflow-hidden relative h-4 flex items-center min-w-[100px]">
+          {/* Vertical 3D Cylinder Text Roll */}
+          <div className="overflow-hidden relative h-4 flex items-center min-w-[100px]" style={{ perspective: 800 }}>
             <AnimatePresence mode="wait" initial={false}>
               <motion.button
                 key={activeTheme}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                initial={{ opacity: 0, y: 12, rotateX: 45, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -12, rotateX: -45, scale: 0.95 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
                 onClick={cycleMood}
                 className="absolute text-[11px] font-bold text-white hover:text-white/80 transition-colors whitespace-nowrap text-left"
+                style={{ transformOrigin: 'center center -10px' }}
                 title="Click to cycle mood"
               >
                 {MOOD_PRESETS[activeTheme]?.name}
@@ -239,10 +298,10 @@ export default function App() {
                   <h4 className="font-bold text-sm mb-3 text-white">Quick Controls</h4>
                   <ul className="space-y-2.5 text-xs text-white/60">
                     {[
-                      ['Space', 'Shuffle palette'],
+                      ['Space (Hold)', 'Morph continuously'],
+                      ['Space (Tap)', 'Shuffle colors'],
                       ['Click hex', 'Edit color'],
                       ['Hover bar', 'Lock / tune HSL'],
-                      ['Role tag', 'Assign semantic role'],
                     ].map(([k, v]) => (
                       <li key={k} className="flex justify-between items-center">
                         <span className="font-semibold text-white/80">{k}</span>
@@ -270,6 +329,7 @@ export default function App() {
               <ColorBar key={color.id}
                 color={color} index={index} total={palette.length}
                 palette={palette} transitionStyle={transitionStyle}
+                isCycling={isCycling}
                 onToggleLock={handleToggleLock} onUpdateHex={handleUpdateHex}
                 onUpdateRole={handleUpdateRole} onCopy={handleCopyColor} />
             ))}
@@ -277,19 +337,23 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {!isWelcomeState && (
-          <motion.div key="controls" initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }} transition={{ ...SPRING, delay: 0.4 }} className="relative z-30">
-            <ControlPanel size={size} setSize={setSize} activeTheme={activeTheme}
-              setActiveTheme={setActiveTheme} onShuffle={triggerShuffle}
-              onOpenTemplates={() => setIsTemplatesOpen(true)} palette={palette} 
-              transitionStyle={transitionStyle} setTransitionStyle={setTransitionStyle} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <TemplatePreview isOpen={isTemplatesOpen} onClose={() => setIsTemplatesOpen(false)} palette={palette} />
+      {/* Floating Control Panel */}
+      {!isWelcomeState && (
+        <ControlPanel
+          size={size}
+          setSize={setSize}
+          activeTheme={activeTheme}
+          setActiveTheme={setActiveTheme}
+          onShuffle={triggerShuffle}
+          onOpenTemplates={() => setIsTemplatesOpen(true)}
+          palette={palette}
+          transitionStyle={transitionStyle}
+          setTransitionStyle={setTransitionStyle}
+          startCycling={startCycling}
+          stopCycling={stopCycling}
+          isCycling={isCycling}
+        />
+      )}
 
       <AnimatePresence>
         {copiedColor && (

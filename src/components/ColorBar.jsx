@@ -15,7 +15,7 @@ function isLight(hex) {
 }
 
 export default function ColorBar({
-  color, index, total, palette = [], transitionStyle = 'cascade', onToggleLock, onUpdateHex, onUpdateRole, onCopy
+  color, index, total, palette = [], transitionStyle = 'cascade', isCycling = false, onToggleLock, onUpdateHex, onUpdateRole, onCopy
 }) {
   const [showSliders, setShowSliders] = useState(false);
   const [isEditingHex, setIsEditingHex] = useState(false);
@@ -52,11 +52,68 @@ export default function ColorBar({
   };
 
   const roleDisplay = ROLE_DISPLAY[color.role];
-
   const isMobileLayout = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
+  // ─── Continuous & Entry/Exit Variant Logic ───
   const getBgVariants = (style, idx) => {
     const isEven = idx % 2 === 0;
+    
+    // 1. Loop animations when user is holding down Space/Shuffle
+    if (isCycling) {
+      switch (style) {
+        case 'crossfade':
+          return {
+            hidden: { filter: 'hue-rotate(0deg)' },
+            visible: {
+              filter: ['hue-rotate(0deg)', 'hue-rotate(360deg)'],
+              transition: { repeat: Infinity, ease: 'linear', duration: 3.5 }
+            },
+            exit: { filter: 'hue-rotate(0deg)' }
+          };
+        case 'cross-slide':
+          if (isMobileLayout) {
+            return {
+              hidden: { x: 0 },
+              visible: {
+                x: isEven ? ['-15%', '15%'] : ['15%', '-15%'],
+                transition: { repeat: Infinity, repeatType: 'reverse', duration: 0.7, ease: 'easeInOut' }
+              },
+              exit: { x: 0 }
+            };
+          } else {
+            return {
+              hidden: { y: 0 },
+              visible: {
+                y: isEven ? ['-15%', '15%'] : ['15%', '-15%'],
+                transition: { repeat: Infinity, repeatType: 'reverse', duration: 0.7, ease: 'easeInOut' }
+              },
+              exit: { y: 0 }
+            };
+          }
+        case 'slide':
+          return {
+            hidden: { y: 0 },
+            visible: {
+              y: ['0%', '-12%', '0%'],
+              transition: { repeat: Infinity, duration: 1.1, ease: 'easeInOut', delay: idx * 0.08 }
+            },
+            exit: { y: 0 }
+          };
+        case 'cascade':
+        default:
+          return {
+            hidden: { scale: 1, filter: 'blur(0px)' },
+            visible: {
+              scale: [1, 0.96, 1],
+              filter: ['blur(0px)', 'blur(3px)', 'blur(0px)'],
+              transition: { repeat: Infinity, duration: 1.2, ease: 'easeInOut', delay: idx * 0.08 }
+            },
+            exit: { scale: 1, filter: 'blur(0px)' }
+          };
+      }
+    }
+
+    // 2. Normal shuffle transitions (when just tapped or on release ease-out)
     switch (style) {
       case 'crossfade':
         return {
@@ -108,7 +165,7 @@ export default function ColorBar({
       {/* Dynamic Background Layer */}
       <AnimatePresence mode="popLayout">
         <motion.div
-          key={color.hex}
+          key={isCycling ? 'cycling' : color.hex}
           variants={bgVariants}
           initial="hidden"
           animate="visible"

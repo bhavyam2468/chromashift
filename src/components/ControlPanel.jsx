@@ -3,7 +3,7 @@ import { RefreshCw, Layout, Download, Check, Minus, Plus, X, Sliders, ChevronDow
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ControlPanel({
-  size, setSize, activeTheme, setActiveTheme, onShuffle, onOpenTemplates, palette, transitionStyle, setTransitionStyle
+  size, setSize, activeTheme, setActiveTheme, onShuffle, onOpenTemplates, palette, transitionStyle, setTransitionStyle, startCycling, stopCycling, isCycling
 }) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [copiedFormat, setCopiedFormat] = useState(null);
@@ -48,11 +48,12 @@ export default function ControlPanel({
       <>
         {/* Shuffle FAB (Bottom-Left) */}
         <button
-          onClick={onShuffle}
-          className="fixed bottom-4 left-4 z-35 w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center active:scale-90 transition-all"
-          title="Shuffle palette"
+          onTouchStart={startCycling}
+          onTouchEnd={stopCycling}
+          className="fixed bottom-4 left-4 z-35 w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center active:scale-90 transition-all select-none touch-none"
+          title="Shuffle palette (Hold to morph)"
         >
-          <RefreshCw size={18} />
+          <RefreshCw size={18} className={isCycling ? "animate-spin" : ""} />
         </button>
 
         {/* Controls FAB (Bottom-Right) */}
@@ -277,9 +278,13 @@ export default function ControlPanel({
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <button onClick={onShuffle}
-              className="flex items-center gap-1.5 bg-white text-black hover:bg-white/90 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 group">
-              <RefreshCw size={13} className="group-hover:rotate-180 transition-transform duration-500" />
+            <button
+              onMouseDown={startCycling}
+              onMouseUp={stopCycling}
+              onMouseLeave={isCycling ? stopCycling : undefined}
+              className="flex items-center gap-1.5 bg-white text-black hover:bg-white/90 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 group select-none"
+            >
+              <RefreshCw size={13} className={isCycling ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
               <span>Shuffle</span>
               <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-black/8 text-black/50 rounded text-[9px] font-mono font-bold ml-1">Space</kbd>
             </button>
