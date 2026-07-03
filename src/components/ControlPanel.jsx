@@ -41,30 +41,27 @@ export default function ControlPanel({
     setTimeout(() => setCopiedFormat(null), 2000);
   };
 
-  // ─── 1. Mobile Layout Render (With Shuffle + Controls Double FAB) ───
+  // ─── 1. Mobile Layout Render (With Shuffle + Controls FAB) ───
   if (isMobile) {
     return (
       <>
-        {/* Double FAB Buttons for Mobile (Shuffle on top, Controls below) */}
-        <div className="fixed bottom-4 right-4 z-35 flex flex-col gap-3 md:hidden">
-          {/* Shuffle FAB */}
-          <button
-            onClick={onShuffle}
-            className="w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center active:scale-90 transition-all"
-            title="Shuffle palette"
-          >
-            <RefreshCw size={18} />
-          </button>
+        {/* Shuffle FAB (Bottom-Left) */}
+        <button
+          onClick={onShuffle}
+          className="fixed bottom-4 left-4 z-35 w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center active:scale-90 transition-all"
+          title="Shuffle palette"
+        >
+          <RefreshCw size={18} />
+        </button>
 
-          {/* Controls FAB */}
-          <button
-            onClick={() => setShowMobileMenu(true)}
-            className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 text-white shadow-2xl flex items-center justify-center active:scale-90 transition-all"
-            title="Open controls"
-          >
-            <Sliders size={18} />
-          </button>
-        </div>
+        {/* Controls FAB (Bottom-Right) */}
+        <button
+          onClick={() => setShowMobileMenu(true)}
+          className="fixed bottom-4 right-4 z-35 w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 text-white shadow-2xl flex items-center justify-center active:scale-90 transition-all"
+          title="Open controls"
+        >
+          <Sliders size={18} />
+        </button>
 
         {/* Mobile Bottom Sheet Drawer */}
         <AnimatePresence>
