@@ -55,6 +55,13 @@ export default function App() {
     }
   }, [size]);
 
+  // Regenerate when mood changes
+  useEffect(() => {
+    if (!isWelcomeState && palette.length > 0) {
+      setPalette(generatePalette(size, activeTheme, palette));
+    }
+  }, [activeTheme]);
+
   // Sync CSS variables
   useEffect(() => {
     if (palette.length === 0) return;
