@@ -115,9 +115,11 @@ export default function ColorBar({
           <>
             <div className="fixed inset-0 z-10" onClick={() => setShowSliders(false)} />
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={SPRING}
-              className="absolute left-1/2 -translate-x-1/2 top-12 md:top-1/4 z-20 w-[90%] max-w-[220px] rounded-2xl p-4 shadow-2xl"
+              initial={{ x: "-50%", opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ x: "-50%", opacity: 1, y: 0, scale: 1 }}
+              exit={{ x: "-50%", opacity: 0, y: 10, scale: 0.95 }}
+              transition={SPRING}
+              className="absolute left-1/2 top-12 md:top-1/4 z-20 w-[95%] max-w-[220px] rounded-2xl p-4 shadow-2xl"
               style={{ backgroundColor: light ? 'rgba(255,255,255,0.94)' : 'rgba(12,12,20,0.94)',
                 backdropFilter: 'blur(16px)', border: `1px solid ${overlayBorder}`, color: textColor }}
               onClick={e => e.stopPropagation()}

@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, Palette } from 'lucide-react';
+import { HelpCircle, Palette, Lock, Unlock, Mountain, Waves, Sunrise, Leaf, Moon, Briefcase, Zap, Heart } from 'lucide-react';
 import ColorBar from './components/ColorBar';
 import ControlPanel from './components/ControlPanel';
 import TemplatePreview from './components/TemplatePreview';
-import { generatePalette, hexToHsl, hslToHex } from './utils/colorUtils';
+import { generatePalette, MOOD_PRESETS, hexToHsl, hslToHex } from './utils/colorUtils';
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 30 };
+
+const MOOD_ICONS = {
+  earth: Mountain,
+  ocean: Waves,
+  sunset: Sunrise,
+  forest: Leaf,
+  violet: Moon,
+  slate: Briefcase,
+  neon: Zap,
+  blush: Heart,
+};
 
 function isColorLight(hex) {
   if (!hex) return false;
@@ -20,6 +31,7 @@ function isColorLight(hex) {
 export default function App() {
   const [size, setSize] = useState(5);
   const [activeTheme, setActiveTheme] = useState('earth');
+  const [isMoodLocked, setIsMoodLocked] = useState(false);
   const [palette, setPalette] = useState([]);
   const [isWelcomeState, setIsWelcomeState] = useState(true);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
@@ -28,7 +40,7 @@ export default function App() {
   const [shuffleKey, setShuffleKey] = useState(0);
 
   const stateRef = useRef({});
-  stateRef.current = { palette, size, activeTheme, isWelcomeState };
+  stateRef.current = { palette, size, activeTheme, isWelcomeState, isMoodLocked };
 
   // Generate initial palette
   useEffect(() => {
@@ -42,13 +54,6 @@ export default function App() {
     }
   }, [size]);
 
-  // Regenerate when mood changes
-  useEffect(() => {
-    if (!isWelcomeState && palette.length > 0) {
-      setPalette(generatePalette(size, activeTheme, palette));
-    }
-  }, [activeTheme]);
-
   // Sync CSS variables
   useEffect(() => {
     if (palette.length === 0) return;
@@ -58,10 +63,19 @@ export default function App() {
   }, [palette, isWelcomeState]);
 
   const triggerShuffle = useCallback(() => {
-    const { palette, size, activeTheme, isWelcomeState } = stateRef.current;
+    const { palette, size, activeTheme, isWelcomeState, isMoodLocked } = stateRef.current;
     if (isWelcomeState) setIsWelcomeState(false);
     setShuffleKey(k => k + 1);
-    setPalette(generatePalette(size, activeTheme, palette));
+
+    let nextTheme = activeTheme;
+    if (!isMoodLocked) {
+      const keys = Object.keys(MOOD_PRESETS);
+      const filtered = keys.filter(k => k !== activeTheme);
+      nextTheme = filtered[Math.floor(Math.random() * filtered.length)] || activeTheme;
+      setActiveTheme(nextTheme);
+    }
+
+    setPalette(generatePalette(size, nextTheme, palette));
   }, []);
 
   useEffect(() => {
@@ -121,12 +135,99 @@ export default function App() {
       <motion.div className="absolute inset-0 pointer-events-none z-0"
         animate={{ background: ambientGradient }} transition={{ duration: 1.8, ease: 'easeInOut' }} />
 
+      {/* Top Header Bar */}
+      {!isWelcomeState && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={SPRING}
+          className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-20 bg-black/30 backdrop-blur-md border-b border-white/5"
+        >
+          {/* Left: Floating Mood Lock */}
+          <div className="flex items-center gap-2">
+            {(() => {
+              const Icon = MOOD_ICONS[activeTheme] || Mountain;
+              return <Icon size={13} className="text-white/60" />;
+            })()}
+            <button
+              onClick={() => {
+                const keys = Object.keys(MOOD_PRESETS);
+                const filtered = keys.filter(k => k !== activeTheme);
+                const next = filtered[Math.floor(Math.random() * filtered.length)] || activeTheme;
+                setActiveTheme(next);
+              }}
+              className="text-[11px] font-bold text-white hover:text-white/80 transition-colors"
+              title="Click to randomize mood"
+            >
+              {MOOD_PRESETS[activeTheme]?.name}
+            </button>
+            
+            <div className="w-[1px] h-3 bg-white/10 mx-1.5" />
+            
+            <button
+              onClick={() => setIsMoodLocked(!isMoodLocked)}
+              className="p-1 rounded-md hover:bg-white/5 transition-colors"
+              style={{ color: isMoodLocked ? '#34d399' : 'rgba(255,255,255,0.4)' }}
+              title={isMoodLocked ? 'Unlock Mood' : 'Lock Mood'}
+            >
+              {isMoodLocked ? <Lock size={12} /> : <Unlock size={12} />}
+            </button>
+          </div>
+
+          {/* Center: Brand name */}
+          <span className="hidden sm:inline-block text-[10px] font-bold tracking-[0.25em] uppercase text-white/20 select-none">
+            ChromaShift v2
+          </span>
+
+          {/* Right: Help Trigger */}
+          <div className="relative">
+            <button
+              onClick={() => setShowHelp(!showHelp)}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            >
+              <HelpCircle size={15} />
+            </button>
+            
+            <AnimatePresence>
+              {showHelp && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setShowHelp(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: 8 }}
+                    transition={SPRING}
+                    className="absolute right-0 mt-2 p-5 rounded-2xl bg-[#09090f]/95 backdrop-blur-xl border border-white/10 w-60 shadow-2xl z-35 text-white"
+                  >
+                    <h4 className="font-bold text-sm mb-3 text-white">Quick Controls</h4>
+                    <ul className="space-y-2.5 text-xs text-white/60">
+                      {[
+                        ['Space', 'Shuffle palette'],
+                        ['Click hex', 'Edit color'],
+                        ['Hover bar', 'Lock / tune HSL'],
+                        ['Role tag', 'Assign semantic role'],
+                      ].map(([k, v]) => (
+                        <li key={k} className="flex justify-between items-center">
+                          <span className="font-semibold text-white/80">{k}</span>
+                          <span className="px-2 py-0.5 bg-white/8 border border-white/10 rounded-md text-[10px] font-mono">{v}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Main color stripes screen */}
       <AnimatePresence mode="wait">
         {isWelcomeState ? (
           <WelcomeScreen key="welcome" onStart={triggerShuffle} />
         ) : (
           <motion.div key="generator"
-            className="flex-1 flex flex-row h-full w-full overflow-hidden relative z-10"
+            className="flex-1 flex flex-col md:flex-row h-full w-full overflow-hidden relative z-10 pt-16"
             initial="hidden" animate="visible" exit="exit"
             variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } }, exit: { transition: { staggerChildren: 0.04, staggerDirection: -1 } } }}>
             {palette.map((color, index) => (
@@ -168,39 +269,6 @@ export default function App() {
                 {copiedColor.toUpperCase()}
               </span>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {!isWelcomeState && (
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }} transition={{ ...SPRING, delay: 0.6 }}
-            className="absolute top-5 right-5 z-30">
-            <button onClick={() => setShowHelp(!showHelp)}
-              className="p-2.5 rounded-xl bg-black/30 backdrop-blur-md border border-white/10 hover:border-white/25 text-white/60 hover:text-white transition-all shadow-lg">
-              <HelpCircle size={18} />
-            </button>
-            <AnimatePresence>
-              {showHelp && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setShowHelp(false)} />
-                  <motion.div initial={{ opacity: 0, scale: 0.92, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.92, y: 8 }} transition={SPRING}
-                    className="absolute right-0 mt-2 p-5 rounded-2xl bg-black/70 backdrop-blur-xl border border-white/10 w-60 shadow-2xl z-30 text-white">
-                    <h4 className="font-bold text-sm mb-3 text-white">Quick Controls</h4>
-                    <ul className="space-y-2.5 text-xs text-white/60">
-                      {[['Space', 'Shuffle palette'], ['Click hex', 'Edit color'], ['Hover bar', 'Lock / tune HSL'], ['Role pill', 'Assign semantic role']].map(([k, v]) => (
-                        <li key={k} className="flex justify-between items-center">
-                          <span className="font-semibold text-white/80">{k}</span>
-                          <span className="px-2 py-0.5 bg-white/8 border border-white/10 rounded-md text-[10px] font-mono">{v}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

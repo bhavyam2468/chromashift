@@ -1,25 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Layout, Download, Check, Minus, Plus, X, ChevronDown, Mountain, Waves, Sunrise, Leaf, Moon, Briefcase, Zap, Heart, Sliders } from 'lucide-react';
-import { MOOD_PRESETS } from '../utils/colorUtils';
+import { RefreshCw, Layout, Download, Check, Minus, Plus, X, Sliders } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const MOOD_ICONS = {
-  earth: Mountain,
-  ocean: Waves,
-  sunset: Sunrise,
-  forest: Leaf,
-  violet: Moon,
-  slate: Briefcase,
-  neon: Zap,
-  blush: Heart,
-};
 
 export default function ControlPanel({
   size, setSize, activeTheme, setActiveTheme, onShuffle, onOpenTemplates, palette
 }) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [copiedFormat, setCopiedFormat] = useState(null);
-  const [showMoodMenu, setShowMoodMenu] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
   // Responsive check
@@ -61,7 +48,7 @@ export default function ControlPanel({
         {/* Floating Action Button (FAB) for Mobile */}
         <button
           onClick={() => setShowMobileMenu(true)}
-          className="fixed bottom-4 right-4 z-30 w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+          className="fixed bottom-4 right-4 z-35 w-12 h-12 rounded-full bg-white text-black shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
         >
           <Sliders size={18} />
         </button>
@@ -91,7 +78,7 @@ export default function ControlPanel({
                 <div className="flex justify-between items-center border-b border-white/5 pb-3">
                   <div className="flex flex-col">
                     <h3 className="text-sm font-bold">ChromaShift Controls</h3>
-                    <p className="text-[10px] text-white/40">Adjust size, mood, or export palette</p>
+                    <p className="text-[10px] text-white/40">Adjust size or export palette</p>
                   </div>
                   <button onClick={() => setShowMobileMenu(false)} className="p-1.5 rounded-full bg-white/5 hover:bg-white/10">
                     <X size={16} />
@@ -112,62 +99,6 @@ export default function ControlPanel({
                       <Plus size={14} />
                     </button>
                   </div>
-                </div>
-
-                {/* Mood selector */}
-                <div className="flex justify-between items-center relative">
-                  <span className="text-xs font-bold uppercase tracking-wider text-white/40">Mood Preset</span>
-                  <button
-                    onClick={() => setShowMoodMenu(v => !v)}
-                    className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white font-medium bg-white/5"
-                  >
-                    {(() => {
-                      const SelectedIcon = MOOD_ICONS[activeTheme] || Mountain;
-                      return <SelectedIcon size={12} className="text-white/70" />;
-                    })()}
-                    <span>{MOOD_PRESETS[activeTheme]?.name}</span>
-                    <ChevronDown size={10} className="opacity-50" />
-                  </button>
-
-                  <AnimatePresence>
-                    {showMoodMenu && (
-                      <>
-                        <div className="fixed inset-0 z-30" onClick={() => setShowMoodMenu(false)} />
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                          className="absolute right-0 bottom-full mb-2 z-40 rounded-xl bg-[#12121e] border border-white/10 shadow-2xl p-1.5 w-44 flex flex-col gap-0.5"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          {Object.entries(MOOD_PRESETS).map(([key, m]) => {
-                            const Icon = MOOD_ICONS[key] || Mountain;
-                            const isSelected = activeTheme === key;
-                            return (
-                              <button
-                                key={key}
-                                onClick={() => {
-                                  setActiveTheme(key);
-                                  setShowMoodMenu(false);
-                                }}
-                                className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-xs font-medium"
-                                style={{
-                                  color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.6)',
-                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
-                                }}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Icon size={12} className="opacity-70" />
-                                  <span>{m.name}</span>
-                                </div>
-                                {isSelected && <Check size={11} className="text-emerald-400" />}
-                              </button>
-                            );
-                          })}
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
                 </div>
 
                 {/* Grid of primary actions */}
@@ -193,7 +124,7 @@ export default function ControlPanel({
           )}
         </AnimatePresence>
 
-        {/* Share Export Modal on mobile (so it launches successfully from mobile sheet drawer) */}
+        {/* Share Export Modal on mobile */}
         <AnimatePresence>
           {showExportModal && <ExportModal {...{ showExportModal, setShowExportModal, handleCopy, copiedFormat, exportFormats }} />}
         </AnimatePresence>
@@ -205,16 +136,16 @@ export default function ControlPanel({
   return (
     <>
       <motion.div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 z-30 w-[95%] max-w-2xl pb-4 pt-10"
+        className="fixed bottom-0 left-1/2 z-30 w-[95%] max-w-lg pb-4 pt-10"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        animate={{ y: isHovered ? 0 : 54 }}
+        animate={{ x: "-50%", y: isHovered ? 0 : 54 }}
         transition={{ type: 'spring', stiffness: 300, damping: 26 }}
       >
         {/* Hover activation trigger handle */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 w-14 h-1.5 rounded-full bg-white/15 hover:bg-white/30 transition-colors cursor-pointer select-none" />
 
-        <div className="bg-black/60 backdrop-blur-2xl border border-white/8 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-3 px-5 py-3 select-none">
+        <div className="bg-black/60 backdrop-blur-2xl border border-white/8 rounded-2xl shadow-2xl flex items-center justify-between gap-5 px-6 py-3 select-none">
           {/* Size adjuster */}
           <div className="flex items-center gap-2.5">
             <button onClick={() => size > 3 && setSize(size - 1)} disabled={size <= 3}
@@ -231,69 +162,11 @@ export default function ControlPanel({
             </button>
           </div>
 
-          {/* Mood selector */}
-          <div className="flex flex-col relative">
-            <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest mb-1 select-none">Mood</span>
-            
-            <button
-              onClick={() => setShowMoodMenu(v => !v)}
-              className="flex items-center gap-2 border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1 text-xs text-white font-medium bg-transparent transition-colors cursor-pointer"
-            >
-              {(() => {
-                const SelectedIcon = MOOD_ICONS[activeTheme] || Mountain;
-                return <SelectedIcon size={12} className="text-white/70" />;
-              })()}
-              <span>{MOOD_PRESETS[activeTheme]?.name}</span>
-              <ChevronDown size={10} className="opacity-50 ml-1" />
-            </button>
-
-            <AnimatePresence>
-              {showMoodMenu && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setShowMoodMenu(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 6 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 6 }}
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    className="absolute left-0 bottom-full mb-2.5 z-30 rounded-xl bg-[#09090f]/95 backdrop-blur-xl border border-white/10 shadow-2xl p-1.5 w-44 text-white flex flex-col gap-0.5"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <div className="px-2.5 py-1 text-[8px] font-black tracking-[0.15em] uppercase text-white/30 border-b border-white/5 mb-1 select-none">
-                      Select Mood
-                    </div>
-                    {Object.entries(MOOD_PRESETS).map(([key, m]) => {
-                      const Icon = MOOD_ICONS[key] || Mountain;
-                      const isSelected = activeTheme === key;
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            setActiveTheme(key);
-                            setShowMoodMenu(false);
-                          }}
-                          className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/5 text-left"
-                          style={{
-                            color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.6)',
-                            backgroundColor: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Icon size={12} className="opacity-70" />
-                            <span>{m.name}</span>
-                          </div>
-                          {isSelected && <Check size={11} className="text-emerald-400" />}
-                        </button>
-                      );
-                    })}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Vertical divider */}
+          <div className="w-[1px] h-6 bg-white/10" />
 
           {/* Actions */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button onClick={onShuffle}
               className="flex items-center gap-1.5 bg-white text-black hover:bg-white/90 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 group">
               <RefreshCw size={13} className="group-hover:rotate-180 transition-transform duration-500" />
@@ -328,7 +201,7 @@ function ExportModal({ setShowExportModal, handleCopy, copiedFormat, exportForma
         onClick={() => setShowExportModal(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl bg-neutral-950/95 backdrop-blur-xl border border-white/10 shadow-2xl z-50 p-6 text-white">
+        className="relative w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl bg-neutral-950/95 backdrop-blur-xl border border-white/10 shadow-2xl z-55 p-6 text-white font-sans">
         <button onClick={() => setShowExportModal(false)} className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10">
           <X size={18} />
         </button>
