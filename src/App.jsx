@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Lock, Unlock, ChevronRight, Circle, Triangle, Square, Palette } from 'lucide-react';
-import { useHotkeys } from 'react-hotkeys-hook';
 import ColorBar from './components/ColorBar';
 import ControlPanel from './components/ControlPanel';
 import TemplatePreview from './components/TemplatePreview';
