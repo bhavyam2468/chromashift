@@ -39,7 +39,6 @@ export default function App() {
   const [isMoodLocked, setIsMoodLocked] = useState(false);
   const [showHarmonyPicker, setShowHarmonyPicker] = useState(false);
   const [pickerHarmonyType, setPickerHarmonyType] = useState(DEFAULT_HARMONY);
-  const [transitionStyle, setTransitionStyle] = useState('cascade');
   const [palette, setPalette] = useState([]);
   const [isWelcomeState, setIsWelcomeState] = useState(true);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
@@ -136,9 +135,9 @@ export default function App() {
     }
     
     if (isHoldingRef.current) {
-      // Release from a hold: return to normal state and trigger a final bouncy settle
+      // Releasing a hold: just turn off fast shuffle state so it animates back gracefully.
+      // Do NOT trigger another shuffle here, as that causes the "double shuffle" lag!
       setIsFastShuffle(false);
-      triggerShuffle();
     } else {
       // Single click: trigger a normal single shuffle with the perfect bouncy animation
       triggerShuffle();
@@ -427,8 +426,6 @@ export default function App() {
               isFastShuffle={isFastShuffle}
               onOpenTemplates={() => setIsTemplatesOpen(true)}
               palette={palette}
-              transitionStyle={transitionStyle}
-              setTransitionStyle={setTransitionStyle}
             />
           </motion.div>
         )}

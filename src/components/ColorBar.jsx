@@ -36,34 +36,33 @@ function getNegativeColor(hex, alpha = 1) {
 }
 
 export default function ColorBar({
-  color, index, total, palette = [], transitionStyle = 'cascade', isFastShuffle, onToggleLock, onToggleRoleLock, onUpdateHex, onUpdateRole, onCopy
+  color, index, total, palette = [], isFastShuffle, onToggleLock, onToggleRoleLock, onUpdateHex, onUpdateRole, onCopy
 }) {
+  const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showSliders, setShowSliders] = useState(false);
   const [isEditingHex, setIsEditingHex] = useState(false);
-  const [tempHex, setTempHex] = useState(color.hex);
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
-  const [justCopied, setJustCopied] = useState(false);
+  const [hexInput, setHexInput] = useState('');
+  const [copied, setCopied] = useState(false);
+  const hexInputRef = useRef(null);
 
-  const light = isLight(color.hex);
-  const textColor = getNegativeColor(color.hex, 0.92);
+  const light = color.l > 60;
+  const textColor = light ? '#000000' : '#ffffff';
   const mutedColor = getNegativeColor(color.hex, 0.6);
   const overlayBg = getNegativeColor(color.hex, 0.08);
   const overlayBorder = getNegativeColor(color.hex, 0.15);
 
-  const handleCopy = () => {
-    onCopy(color.hex);
-    setJustCopied(true);
-    setTimeout(() => setJustCopied(false), 1200);
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(color.hex.toUpperCase());
+    setCopied(true);
+    onCopy?.(color.hex);
+    setTimeout(() => setCopied(false), 1200);
   };
 
   const handleHexSubmit = (e) => {
-    e?.preventDefault();
-    let val = tempHex.trim();
-    if (!val.startsWith('#')) val = '#' + val;
-    if (/^#[0-9A-Fa-f]{6}$/.test(val) || /^#[0-9A-Fa-f]{3}$/.test(val)) {
-      onUpdateHex(color.id, val);
-    } else {
-      setTempHex(color.hex);
+    e.preventDefault();
+    if (/^#[0-9A-F]{6}$/i.test(hexInput)) {
+      onUpdateHex(color.id, hexInput);
     }
     setIsEditingHex(false);
   };
@@ -73,250 +72,44 @@ export default function ColorBar({
   };
 
   const roleDisplay = ROLE_DISPLAY[color.role];
-  const isMobileLayout = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
-  const getBgVariants = (style, idx) => {
-    const isEven = idx % 2 === 0;
-    
-    // Fast shuffle settings to prevent pile-up jitter
-    const fastDur = 0.14;
-    const fastTransitionVisible = { duration: fastDur, ease: 'linear' };
-    const fastTransitionExit = { duration: 0 };
-    
-    switch (style) {
-      case 'crossfade':
-        return {
-          hidden: { opacity: 0 },
-          visible: { 
-            opacity: 1, 
-            transition: isFastShuffle ? fastTransitionVisible : { duration: 0.45, ease: 'easeInOut' } 
-          },
-          exit: { 
-            opacity: 0, 
-            transition: isFastShuffle ? fastTransitionExit : { duration: 0.45, ease: 'easeInOut' } 
-          }
-        };
-        
-      case 'cross-slide': {
-        const originX = isEven ? '100%' : '-100%';
-        const destX = isEven ? '-100%' : '100%';
-        const originY = isEven ? '100%' : '-100%';
-        const destY = isEven ? '-100%' : '100%';
-        
-        if (isFastShuffle) {
-          if (isMobileLayout) {
-            return {
-              hidden: { x: originX, scale: 0.85, opacity: 1 },
-              visible: {
-                x: 0,
-                scale: 1,
-                opacity: 1,
-                transition: {
-                  x: { duration: fastDur, ease: 'easeOut' },
-                  scale: { duration: fastDur, ease: 'easeOut' }
-                }
-              },
-              exit: {
-                x: destX,
-                scale: 0.85,
-                opacity: 0,
-                transition: fastTransitionExit
-              }
-            };
-          } else {
-            return {
-              hidden: { y: originY, scale: 0.85, opacity: 1 },
-              visible: {
-                y: 0,
-                scale: 1,
-                opacity: 1,
-                transition: {
-                  y: { duration: fastDur, ease: 'easeOut' },
-                  scale: { duration: fastDur, ease: 'easeOut' }
-                }
-              },
-              exit: {
-                y: destY,
-                scale: 0.85,
-                opacity: 0,
-                transition: fastTransitionExit
-              }
-            };
-          }
-        } else {
-          // Normal cross-slide with scale down -> push slide -> scale up overshoot sequence
-          const dur = 0.45;
-          if (isMobileLayout) {
-            return {
-              hidden: { x: originX, scale: 0.8, opacity: 1 },
-              visible: {
-                x: [originX, originX, 0, 0],
-                scale: [0.8, 0.8, 1.06, 1],
-                opacity: 1,
-                transition: {
-                  x: { duration: dur, times: [0, 0.3, 0.8, 1], ease: 'easeInOut' },
-                  scale: { duration: dur, times: [0, 0.3, 0.8, 1], ease: 'easeInOut' }
-                }
-              },
-              exit: {
-                x: [0, 0, destX],
-                scale: [1, 0.8, 0.8],
-                opacity: 1,
-                transition: {
-                  x: { duration: dur, times: [0, 0.3, 1], ease: 'easeInOut' },
-                  scale: { duration: dur, times: [0, 0.3, 1], ease: 'easeInOut' }
-                }
-              }
-            };
-          } else {
-            return {
-              hidden: { y: originY, scale: 0.8, opacity: 1 },
-              visible: {
-                y: [originY, originY, 0, 0],
-                scale: [0.8, 0.8, 1.06, 1],
-                opacity: 1,
-                transition: {
-                  y: { duration: dur, times: [0, 0.3, 0.8, 1], ease: 'easeInOut' },
-                  scale: { duration: dur, times: [0, 0.3, 0.8, 1], ease: 'easeInOut' }
-                }
-              },
-              exit: {
-                y: [0, 0, destY],
-                scale: [1, 0.8, 0.8],
-                opacity: 1,
-                transition: {
-                  y: { duration: dur, times: [0, 0.3, 1], ease: 'easeInOut' },
-                  scale: { duration: dur, times: [0, 0.3, 1], ease: 'easeInOut' }
-                }
-              }
-            };
-          }
+  const getBgVariants = (idx) => {
+    if (isFastShuffle) {
+      return {
+        hidden: { opacity: 0.2, scale: 0.98 },
+        visible: {
+          opacity: 1,
+          scale: 1,
+          transition: { duration: 0.12, ease: 'easeOut' }
+        },
+        exit: {
+          opacity: 0,
+          scale: 0.98,
+          transition: { duration: 0 }
         }
-      }
-      
-      case 'slide': {
-        const originVal = '40%';
-        const destVal = '-40%';
-        
-        if (isFastShuffle) {
-          const staggerVisible = idx * 0.01;
-          if (isMobileLayout) {
-            return {
-              hidden: { x: originVal, scale: 0.92, opacity: 0 },
-              visible: {
-                x: 0,
-                scale: 1,
-                opacity: 1,
-                transition: { duration: fastDur, ease: 'easeOut', delay: staggerVisible }
-              },
-              exit: {
-                x: destVal,
-                scale: 0.92,
-                opacity: 0,
-                transition: fastTransitionExit
-              }
-            };
-          } else {
-            return {
-              hidden: { y: originVal, scale: 0.92, opacity: 0 },
-              visible: {
-                y: 0,
-                scale: 1,
-                opacity: 1,
-                transition: { duration: fastDur, ease: 'easeOut', delay: staggerVisible }
-              },
-              exit: {
-                y: destVal,
-                scale: 0.92,
-                opacity: 0,
-                transition: fastTransitionExit
-              }
-            };
-          }
-        } else {
-          const staggerVisible = idx * 0.035;
-          const staggerExit = idx * 0.015;
-          if (isMobileLayout) {
-            return {
-              hidden: { x: originVal, scale: 0.92, opacity: 0 },
-              visible: {
-                x: 0,
-                scale: 1,
-                opacity: 1,
-                transition: {
-                  x: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
-                  scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
-                  opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
-                }
-              },
-              exit: {
-                x: destVal,
-                scale: 0.92,
-                opacity: 0,
-                transition: {
-                  x: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
-                  scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
-                  opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
-                }
-              }
-            };
-          } else {
-            return {
-              hidden: { y: originVal, scale: 0.92, opacity: 0 },
-              visible: {
-                y: 0,
-                scale: 1,
-                opacity: 1,
-                transition: {
-                  y: { type: 'spring', stiffness: 280, damping: 20, delay: staggerVisible },
-                  scale: { type: 'spring', stiffness: 320, damping: 18, delay: staggerVisible },
-                  opacity: { duration: 0.25, ease: 'easeOut', delay: staggerVisible }
-                }
-              },
-              exit: {
-                y: destVal,
-                scale: 0.92,
-                opacity: 0,
-                transition: {
-                  y: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
-                  scale: { duration: 0.28, ease: 'easeInOut', delay: staggerExit },
-                  opacity: { duration: 0.2, ease: 'easeInOut', delay: staggerExit }
-                }
-              }
-            };
-          }
+      };
+    } else {
+      return {
+        hidden: { scale: 0.92, opacity: 0, y: 15, filter: 'blur(8px)' },
+        visible: { 
+          scale: 1, 
+          opacity: 1, 
+          y: 0,
+          filter: 'blur(0px)', 
+          transition: { type: 'spring', stiffness: 350, damping: 28, delay: idx * 0.035 } 
+        },
+        exit: { 
+          scale: 0.95, 
+          opacity: 0, 
+          y: -10,
+          filter: 'blur(4px)', 
+          transition: { duration: 0.2, ease: 'easeIn', delay: idx * 0.015 } 
         }
-      }
-      
-      case 'cascade':
-      default: {
-        if (isFastShuffle) {
-          const staggerVisible = idx * 0.01;
-          return {
-            hidden: { scale: 0.95, opacity: 0 },
-            visible: {
-              scale: 1,
-              opacity: 1,
-              transition: { duration: fastDur, ease: 'easeOut', delay: staggerVisible }
-            },
-            exit: {
-              scale: 0.95,
-              opacity: 0,
-              transition: fastTransitionExit
-            }
-          };
-        } else {
-          return {
-            hidden: { scale: 0.95, opacity: 0, filter: 'blur(6px)' },
-            visible: { scale: 1, opacity: 1, filter: 'blur(0px)', transition: { ...SPRING, delay: idx * 0.04 } },
-            exit: { scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.25, ease: 'easeInOut', delay: idx * 0.02 } }
-          };
-        }
-      }
+      };
     }
   };
 
-  const bgVariants = getBgVariants(transitionStyle, index);
+  const bgVariants = getBgVariants(index);
 
   return (
     <motion.div
