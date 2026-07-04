@@ -482,6 +482,8 @@ export function generatePalette(size, moodKey, currentPalette = []) {
 
 /**
  * Extracts a structured color map from a palette array for use in templates.
+ * When a role isn't present in the palette, all fallbacks are derived from
+ * the hues that *are* present — never from hardcoded neutral grays.
  */
 export function getSemanticColors(palette) {
   const map = {};
@@ -489,30 +491,48 @@ export function getSemanticColors(palette) {
     if (c.role) map[c.role] = c;
   }
 
-  const get = (role, fallbackRole, fallbackHex) => {
+  // Helper: return hex for a role, or compute a derived fallback from a
+  // reference color in HSL space (so fallbacks always belong to the hue family).
+  const getOrDerive = (role, fallbackRole, deriveFn) => {
     if (map[role]) return map[role].hex;
-    if (fallbackRole && map[fallbackRole]) return map[fallbackRole].hex;
-    return fallbackHex;
+    if (fallbackRole && map[fallbackRole]) {
+      const ref = map[fallbackRole];
+      return deriveFn ? deriveFn(ref.h, ref.s, ref.l) : ref.hex;
+    }
+    return null;
   };
 
-  const primary       = get('primary-neutral', null, '#6366f1');
-  const primaryLight  = get('primary-light',   'primary-neutral', primary);
-  const primaryDark   = get('primary-dark',    'primary-neutral', primary);
-  const secondary     = get('secondary-neutral', 'primary-neutral', primary);
-  const secondaryLight = get('secondary-light', 'secondary-neutral', secondary);
-  const secondaryDark  = get('secondary-dark',  'secondary-neutral', secondary);
-  const bgLight       = get('background-light', null, '#F5F5F5');
-  const bgNeutral     = get('background-neutral', null, '#6B7280');
-  const bgDark        = get('background-dark',  null, '#111111');
+  // Primary family — seed everything off primary-neutral
+  const primaryRef = map['primary-neutral'] || map['primary-light'] || map['primary-dark'] || palette[0];
+  const pH = primaryRef?.h ?? 240;
+  const pS = primaryRef?.s ?? 60;
 
-  const textOnLight   = primaryDark;
-  const textOnDark    = bgLight;
-  const mutedOnLight  = bgNeutral;
-  const mutedOnDark   = hslToHex(
-    (map['background-neutral']?.h || 0),
-    clamp((map['background-neutral']?.s || 10) * 0.6, 3, 15),
-    65
-  );
+  const primary      = primaryRef?.hex ?? hslToHex(pH, pS, 50);
+  const primaryLight = getOrDerive('primary-light',   'primary-neutral', (h, s) => hslToHex(wrapHue(h - 8), clamp(s * 0.65, 12, 80), 80)) ?? hslToHex(wrapHue(pH - 8), clamp(pS * 0.65, 12, 80), 80);
+  const primaryDark  = getOrDerive('primary-dark',    'primary-neutral', (h, s) => hslToHex(wrapHue(h + 8), clamp(s * 1.1, 18, 100), 28)) ?? hslToHex(wrapHue(pH + 8), clamp(pS * 1.1, 18, 100), 28);
+
+  // Secondary family — fall back to primary hue if secondary not present
+  const secRef = map['secondary-neutral'] || map['secondary-light'] || map['secondary-dark'];
+  const sH = secRef?.h ?? pH;
+  const sS = secRef?.s ?? pS;
+
+  const secondary      = secRef?.hex ?? hslToHex(sH, sS, 48);
+  const secondaryLight = getOrDerive('secondary-light', 'secondary-neutral', (h, s) => hslToHex(wrapHue(h - 6), clamp(s * 0.75, 10, 75), 79)) ?? hslToHex(wrapHue(sH - 6), clamp(sS * 0.75, 10, 75), 79);
+  const secondaryDark  = getOrDerive('secondary-dark',  'secondary-neutral', (h, s) => hslToHex(wrapHue(h + 6), clamp(s * 1.1, 15, 95), 26))  ?? hslToHex(wrapHue(sH + 6), clamp(sS * 1.1, 15, 95), 26);
+
+  // Background family — always tinted by the primary hue, never gray
+  const bgRef = map['background-dark'] || map['background-light'] || map['background-neutral'];
+  const bgH   = bgRef?.h ?? pH; // inherit primary hue for tinted bg
+
+  const bgLight   = getOrDerive('background-light',   'background-dark',    () => hslToHex(bgH, clamp(pS * 0.10, 3, 12), 96)) ?? hslToHex(bgH, clamp(pS * 0.10, 3, 12), 96);
+  const bgNeutral = getOrDerive('background-neutral',  'background-dark',   () => hslToHex(bgH, clamp(pS * 0.08, 3, 10), 45)) ?? hslToHex(bgH, clamp(pS * 0.08, 3, 10), 45);
+  const bgDark    = getOrDerive('background-dark',     'background-neutral', () => hslToHex(wrapHue(bgH + 5), clamp(pS * 0.15, 5, 18), 9))   ?? hslToHex(wrapHue(bgH + 5), clamp(pS * 0.15, 5, 18), 9);
+
+  // Text & muted — derived from hues present, not hardcoded
+  const textOnLight  = primaryDark;
+  const textOnDark   = bgLight;
+  const mutedOnLight = hslToHex(bgH, clamp(pS * 0.15, 5, 20), 52);
+  const mutedOnDark  = hslToHex(bgH, clamp(pS * 0.08, 3, 12), 65);
 
   return {
     primary, primaryLight, primaryDark,
@@ -522,3 +542,4 @@ export function getSemanticColors(palette) {
     mutedOnLight, mutedOnDark,
   };
 }
+
