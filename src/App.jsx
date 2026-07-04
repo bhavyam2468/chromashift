@@ -90,19 +90,11 @@ export default function App() {
   }, []);
 
   const triggerShuffle = useCallback(() => {
-    const { palette, size, activeTheme, isWelcomeState, isMoodLocked } = stateRef.current;
+    const { palette, size, activeTheme, isWelcomeState } = stateRef.current;
     if (isWelcomeState) setIsWelcomeState(false);
     setShuffleKey(k => k + 1);
 
-    let nextTheme = activeTheme;
-    if (!isMoodLocked) {
-      const currentIndex = ALL_MOODS.indexOf(activeTheme);
-      const nextIndex = (currentIndex + 1) % ALL_MOODS.length;
-      nextTheme = ALL_MOODS[nextIndex];
-      setActiveTheme(nextTheme);
-    }
-
-    setPalette(generatePalette(size, nextTheme, palette));
+    setPalette(generatePalette(size, activeTheme, palette));
   }, []);
 
   const startFastShuffle = useCallback(() => {
