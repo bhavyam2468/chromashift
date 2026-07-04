@@ -401,7 +401,7 @@ export default function App() {
             {palette.map((color, index) => (
               <ColorBar key={color.id}
                 color={color} index={index} total={palette.length}
-                palette={palette} transitionStyle={transitionStyle}
+                palette={palette}
                 isFastShuffle={isFastShuffle}
                 onToggleLock={handleToggleLock} onToggleRoleLock={handleToggleRoleLock}
                 onUpdateHex={handleUpdateHex}
