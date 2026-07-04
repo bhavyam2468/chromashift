@@ -290,7 +290,10 @@ function derive9Colors(seedHue, baseSat, offsets, harmonyType) {
   // Saturation scaling by harmony type
   const monoScale = harmonyType === 'monochromatic' ? 1.2 : 1.0;
   const secSScale = harmonyType === 'triadic' ? 0.85 : harmonyType === 'tetradic' ? 0.80 : 0.75;
-  const bgSScale  = 0.10;
+  // Backgrounds are now richly tinted — NOT washed-out greys.
+  // bgSScale 0.40 means a 70% sat primary produces ~28% sat backgrounds,
+  // which at dark lightnesses (8–14%) looks like a deep navy / plum / forest.
+  const bgSScale  = 0.40;
 
   const palette = {
     'primary-light': {
@@ -325,18 +328,18 @@ function derive9Colors(seedHue, baseSat, offsets, harmonyType) {
     },
     'background-light': {
       h: bgH,
-      s: clamp(S * bgSScale, 3, 15),
-      l: rand(95, 98),
+      s: clamp(S * bgSScale, 12, 40),   // was 3–15 → now 12–40
+      l: rand(93, 97),
     },
     'background-neutral': {
       h: bgH,
-      s: clamp(S * 0.08, 3, 12),
-      l: rand(40, 50),
+      s: clamp(S * 0.35, 12, 45),       // was 3–12 → now 12–45
+      l: rand(38, 50),
     },
     'background-dark': {
       h: wrapHue(bgH + 5),
-      s: clamp(S * 0.15, 5, 20),
-      l: rand(6, 12),
+      s: clamp(S * 0.55, 20, 65),       // was 5–20 → now 20–65! Deep tinted darks.
+      l: rand(7, 13),
     },
   };
 
@@ -524,10 +527,10 @@ export function getSemanticColors(palette) {
   const bgRef = map['background-dark'] || map['background-light'] || map['background-neutral'];
   const bgH   = bgRef?.h ?? pH; // inherit primary hue for tinted bg
 
-  // Use higher saturation multipliers (e.g. 0.3 instead of 0.15) so backgrounds are colorful, not grey
-  const bgLight   = getOrDerive('background-light',   'background-dark',    () => hslToHex(bgH, clamp(pS * 0.20, 10, 25), 96)) ?? hslToHex(bgH, clamp(pS * 0.20, 10, 25), 96);
-  const bgNeutral = getOrDerive('background-neutral',  'background-dark',   () => hslToHex(bgH, clamp(pS * 0.15, 8, 20), 45)) ?? hslToHex(bgH, clamp(pS * 0.15, 8, 20), 45);
-  const bgDark    = getOrDerive('background-dark',     'background-neutral', () => hslToHex(wrapHue(bgH + 5), clamp(pS * 0.35, 15, 45), 9))   ?? hslToHex(wrapHue(bgH + 5), clamp(pS * 0.35, 15, 45), 9);
+  // Saturation multipliers kept in sync with derive9Colors (bgSScale = 0.40/0.35/0.55)
+  const bgLight   = getOrDerive('background-light',   'background-dark',    () => hslToHex(bgH, clamp(pS * 0.40, 12, 40), 95)) ?? hslToHex(bgH, clamp(pS * 0.40, 12, 40), 95);
+  const bgNeutral = getOrDerive('background-neutral',  'background-dark',   () => hslToHex(bgH, clamp(pS * 0.35, 12, 45), 44)) ?? hslToHex(bgH, clamp(pS * 0.35, 12, 45), 44);
+  const bgDark    = getOrDerive('background-dark',     'background-neutral', () => hslToHex(wrapHue(bgH + 5), clamp(pS * 0.55, 20, 65), 10)) ?? hslToHex(wrapHue(bgH + 5), clamp(pS * 0.55, 20, 65), 10);
 
   // Calculate rich, saturated card surfaces by pulling the HSL of the computed backgrounds
   const darkHsl = hexToHsl(bgDark);

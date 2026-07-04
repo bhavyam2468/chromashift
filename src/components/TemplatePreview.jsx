@@ -1,11 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sun, Moon, BarChart3, Users, DollarSign, TrendingUp, ArrowRight, Layers, CheckCircle, Star, Code, Bell, Search, Menu, Heart, MessageSquare, Tag, ShoppingBag, ShoppingCart, Sparkles, Palette } from 'lucide-react';
+import { X, Sun, Moon, BarChart3, Users, DollarSign, TrendingUp, ArrowRight, Layers, CheckCircle, Star, Code, Bell, Search, Menu, Heart, MessageSquare, Tag, ShoppingBag, ShoppingCart, Sparkles, Palette, Pipette, Copy } from 'lucide-react';
 import { getSemanticColors } from '../utils/colorUtils';
+
+// ─── RGB string → hex ─────────────────────────────────────────────────────────
+function rgbToHex(rgb) {
+  const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (!m) return null;
+  return '#' + [m[1], m[2], m[3]]
+    .map(n => parseInt(n, 10).toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// ─── Walk up the DOM to find the first element with a real background ─────────
+function pickColor(x, y) {
+  const els = document.elementsFromPoint(x, y);
+  for (const el of els) {
+    if (!el || el === document.documentElement) continue;
+    const bg = window.getComputedStyle(el).backgroundColor;
+    if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+      return rgbToHex(bg);
+    }
+  }
+  return null;
+}
 
 export default function TemplatePreview({ isOpen, onClose, palette }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDark, setIsDark] = useState(true);
+  const [pickerPos, setPickerPos] = useState(null);
+  const [pickerColor, setPickerColor] = useState(null);
+  const [flashCopied, setFlashCopied] = useState(false);
+  const flashRef = useRef(null);
 
   if (!palette || palette.length === 0) return null;
 
@@ -32,6 +58,22 @@ export default function TemplatePreview({ isOpen, onClose, palette }) {
     { id: 'illustrations', label: '🎨 Illustrations' },
   ];
 
+  const handleMouseMove = (e) => {
+    setPickerPos({ x: e.clientX, y: e.clientY });
+    const col = pickColor(e.clientX, e.clientY);
+    if (col) setPickerColor(col);
+  };
+
+  const handleClick = async (e) => {
+    if (!pickerColor) return;
+    try {
+      await navigator.clipboard.writeText(pickerColor.toUpperCase());
+    } catch (_) {}
+    setFlashCopied(true);
+    if (flashRef.current) clearTimeout(flashRef.current);
+    flashRef.current = setTimeout(() => setFlashCopied(false), 900);
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -50,6 +92,10 @@ export default function TemplatePreview({ isOpen, onClose, palette }) {
                 <h3 className="font-bold text-sm text-white">Live Preview</h3>
                 <span className="px-2 py-0.5 bg-white/5 border border-white/8 rounded-md text-[9px] text-white/40 font-bold tracking-widest uppercase">
                   {isDark ? 'Dark' : 'Light'} Mode
+                </span>
+                {/* Eyedropper hint */}
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/8 rounded-md text-[9px] text-white/30 font-bold tracking-wide">
+                  <Pipette size={9} /> Hover to pick · Click to copy
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -79,8 +125,14 @@ export default function TemplatePreview({ isOpen, onClose, palette }) {
               ))}
             </div>
 
-            {/* Preview Body */}
-            <div className="flex-1 overflow-y-auto p-5 bg-[#0a0a0a]">
+            {/* Preview Body — eyedropper zone */}
+            <div
+              className="flex-1 overflow-y-auto p-5 bg-[#0a0a0a]"
+              style={{ cursor: 'none' }}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={() => { setPickerPos(null); setPickerColor(null); }}
+              onClick={handleClick}
+            >
               <div className="w-full min-h-[600px] rounded-xl overflow-hidden transition-colors duration-500 shadow-2xl pb-10"
                 style={{ backgroundColor: bg, color: text }}>
 
@@ -97,9 +149,76 @@ export default function TemplatePreview({ isOpen, onClose, palette }) {
           </motion.div>
         </div>
       )}
+
+      {/* ── Eyedropper cursor overlay (fixed, pointer-events: none) ── */}
+      {isOpen && pickerPos && (
+        <div className="fixed z-[9999] pointer-events-none" style={{ left: pickerPos.x, top: pickerPos.y }}>
+          {/* Crosshair ring */}
+          <div style={{
+            position: 'absolute',
+            left: -10,
+            top: -10,
+            width: 20,
+            height: 20,
+            border: '2px solid white',
+            borderRadius: '50%',
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.6)',
+          }} />
+          {/* Center dot */}
+          <div style={{
+            position: 'absolute',
+            left: -2,
+            top: -2,
+            width: 4,
+            height: 4,
+            borderRadius: '50%',
+            backgroundColor: 'white',
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.6)',
+          }} />
+          {/* Color chip tooltip */}
+          {pickerColor && (
+            <div style={{
+              position: 'absolute',
+              left: 16,
+              top: -14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 8px',
+              backgroundColor: flashCopied ? 'rgba(52,211,153,0.95)' : 'rgba(0,0,0,0.88)',
+              border: `1px solid ${flashCopied ? 'rgba(52,211,153,0.6)' : 'rgba(255,255,255,0.12)'}`,
+              borderRadius: 8,
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+              transition: 'background-color 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}>
+              {/* Swatch */}
+              <div style={{
+                width: 12,
+                height: 12,
+                borderRadius: 3,
+                backgroundColor: pickerColor,
+                border: '1px solid rgba(255,255,255,0.25)',
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontFamily: 'monospace',
+                fontSize: 11,
+                fontWeight: 700,
+                color: flashCopied ? '#064e3b' : '#fff',
+                letterSpacing: '0.08em',
+              }}>
+                {flashCopied ? '✓ Copied!' : pickerColor.toUpperCase()}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </AnimatePresence>
   );
 }
+
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
