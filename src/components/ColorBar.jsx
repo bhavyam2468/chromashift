@@ -76,16 +76,16 @@ export default function ColorBar({
   const getBgVariants = (idx) => {
     if (isFastShuffle) {
       return {
-        hidden: { opacity: 0.2, scale: 0.98 },
+        hidden: { opacity: 0, scale: 1.05 },
         visible: {
           opacity: 1,
           scale: 1,
-          transition: { duration: 0.12, ease: 'easeOut' }
+          transition: { duration: 0.15, ease: 'easeOut' }
         },
         exit: {
-          opacity: 0,
-          scale: 0.98,
-          transition: { duration: 0 }
+          opacity: 1,
+          scale: 0.95,
+          transition: { duration: 0.15, ease: 'easeOut' }
         }
       };
     } else {
@@ -100,10 +100,10 @@ export default function ColorBar({
         },
         exit: { 
           scale: 0.95, 
-          opacity: 0, 
+          opacity: 1, // Stay opaque so new color fades over it, preventing grey flashes
           y: -10,
           filter: 'blur(4px)', 
-          transition: { duration: 0.2, ease: 'easeIn', delay: idx * 0.015 } 
+          transition: { duration: 0.3, ease: 'easeOut' } 
         }
       };
     }
