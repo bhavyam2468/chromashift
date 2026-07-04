@@ -97,9 +97,9 @@ export default function App() {
 
     let nextTheme = activeTheme;
     if (!isMoodLocked) {
-      const currentIndex = MOOD_ORDER.indexOf(activeTheme);
-      const nextIndex = (currentIndex + 1) % MOOD_ORDER.length;
-      nextTheme = MOOD_ORDER[nextIndex];
+      const currentIndex = ALL_MOODS.indexOf(activeTheme);
+      const nextIndex = (currentIndex + 1) % ALL_MOODS.length;
+      nextTheme = ALL_MOODS[nextIndex];
       setActiveTheme(nextTheme);
     }
 
