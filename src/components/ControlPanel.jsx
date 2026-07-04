@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Layout, Download, Check, Minus, Plus, X, Sliders, ChevronDown } from 'lucide-react';
+import { RefreshCw, Layout, Download, Check, Minus, Plus, X, Sliders } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ControlPanel({
-  size, setSize, activeTheme, setActiveTheme, onShuffleStart, onShuffleEnd, isFastShuffle, onOpenTemplates, palette, transitionStyle, setTransitionStyle
+  size, setSize, activeTheme, setActiveTheme, onShuffleStart, onShuffleEnd, isFastShuffle, onOpenTemplates, palette
 }) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [copiedFormat, setCopiedFormat] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
-  const [showTransitionMenu, setShowTransitionMenu] = useState(false);
   
   // Responsive check
   const [isMobile, setIsMobile] = useState(false);
@@ -106,25 +105,25 @@ export default function ControlPanel({
                   <div className="flex items-center gap-4">
                     <button onClick={() => size > 3 && setSize(size - 1)} disabled={size <= 3}
                       className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70 disabled:opacity-30">
-                      -
+                      <Minus size={14} />
                     </button>
                     <span className="text-base font-black tabular-nums">{size}</span>
                     <button onClick={() => size < 9 && setSize(size + 1)} disabled={size >= 9}
                       className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70 disabled:opacity-30">
-                      +
+                      <Plus size={14} />
                     </button>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <button onClick={() => { onOpenTemplates(); setShowMobileMenu(false); }}
-                    className="flex flex-col items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl text-xs font-bold transition-all border border-white/5">
+                <div className="flex flex-col gap-3 mt-2">
+                  <button onClick={() => { setShowMobileMenu(false); onOpenTemplates(); }}
+                    className="w-full flex items-center justify-center gap-2 border border-white/10 rounded-xl py-3 text-xs font-bold bg-white/5">
                     <Layout size={14} />
-                    <span>Preview UI</span>
+                    <span>Preview Templates</span>
                   </button>
-                  <button onClick={() => { setShowExportModal(true); setShowMobileMenu(false); }}
-                    className="flex flex-col items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl text-xs font-bold transition-all border border-white/5">
+                  <button onClick={() => { setShowMobileMenu(false); setShowExportModal(true); }}
+                    className="w-full flex items-center justify-center gap-2 border border-white/10 rounded-xl py-3 text-xs font-bold bg-white/5">
                     <Download size={14} />
                     <span>Export Code</span>
                   </button>
@@ -142,22 +141,18 @@ export default function ControlPanel({
     );
   }
 
-  // ─── 2. Desktop Layout Render (Sinks down, comes up on hover) ───
+  // ─── 2. Desktop Layout Render (Wide Control Bar) ───
   return (
     <>
       <motion.div
-        className="fixed bottom-0 left-1/2 z-30 w-[95%] max-w-xl pb-4 pt-10"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 select-none"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        animate={{ x: "-50%", y: isHovered ? 0 : 54 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 26 }}
       >
-        {/* Hover activation trigger handle */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-14 h-1.5 rounded-full bg-white/15 hover:bg-white/30 transition-colors cursor-pointer select-none" />
-
-        <div className="bg-black/60 backdrop-blur-2xl border border-white/8 rounded-2xl shadow-2xl flex items-center justify-between gap-5 px-6 py-3 select-none">
-          {/* Size adjuster */}
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-4 px-4 py-2.5 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl text-white">
+          
+          {/* Size Adjuster */}
+          <div className="flex items-center gap-2">
             <button onClick={() => size > 3 && setSize(size - 1)} disabled={size <= 3}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/8 transition-colors disabled:opacity-30">
               <Minus size={14} />
@@ -170,62 +165,6 @@ export default function ControlPanel({
               className="w-7 h-7 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/8 transition-colors disabled:opacity-30">
               <Plus size={14} />
             </button>
-          </div>
-
-          {/* Vertical divider */}
-          <div className="w-[1px] h-6 bg-white/10" />
-
-          {/* Transition Selector */}
-          <div className="flex flex-col relative">
-            <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest mb-1 select-none">Effect</span>
-            
-            <button
-              onClick={() => setShowTransitionMenu(v => !v)}
-              className="flex items-center gap-1 border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1 text-xs text-white font-medium bg-transparent transition-colors cursor-pointer capitalize"
-            >
-              <span>{transitionStyle}</span>
-              <ChevronDown size={10} className="opacity-50 ml-0.5" />
-            </button>
-
-            <AnimatePresence>
-              {showTransitionMenu && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setShowTransitionMenu(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 6 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 6 }}
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    className="absolute left-0 bottom-full mb-2.5 z-30 rounded-xl bg-[#09090f]/95 backdrop-blur-xl border border-white/10 shadow-2xl p-1.5 w-32 text-white flex flex-col gap-0.5"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <div className="px-2.5 py-1 text-[8px] font-black tracking-[0.15em] uppercase text-white/30 border-b border-white/5 mb-1 select-none">
-                      Select Effect
-                    </div>
-                    {['cascade', 'crossfade', 'cross-slide', 'slide'].map(style => {
-                      const isSelected = transitionStyle === style;
-                      return (
-                        <button
-                          key={style}
-                          onClick={() => {
-                            setTransitionStyle(style);
-                            setShowTransitionMenu(false);
-                          }}
-                          className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/5 text-left capitalize"
-                          style={{
-                            color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.6)',
-                            backgroundColor: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
-                          }}
-                        >
-                          <span>{style}</span>
-                          {isSelected && <Check size={11} className="text-emerald-400" />}
-                        </button>
-                      );
-                    })}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
           </div>
 
           {/* Vertical divider */}

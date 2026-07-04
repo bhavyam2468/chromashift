@@ -47,7 +47,7 @@ export default function App() {
   const [shuffleKey, setShuffleKey] = useState(0);
   
   const [isFastShuffle, setIsFastShuffle] = useState(false);
-  const fastShuffleTimerRef = useRef(null);
+  const animationFrameIdRef = useRef(null);
   const holdTimeoutRef = useRef(null);
   const isSpaceDownRef = useRef(false);
   const isHoldingRef = useRef(false);
@@ -105,9 +105,24 @@ export default function App() {
     setPalette(generatePalette(size, nextTheme, palette));
   }, []);
 
+  const shiftPaletteHue = useCallback((degrees) => {
+    setPalette(prev => {
+      if (!prev || prev.length === 0) return prev;
+      return prev.map(color => {
+        if (color.locked) return color;
+        const newH = ((color.h + degrees) % 360 + 360) % 360;
+        return {
+          ...color,
+          h: newH,
+          hex: hslToHex(newH, color.s, color.l)
+        };
+      });
+    });
+  }, []);
+
   const startFastShuffle = useCallback(() => {
     if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
-    if (fastShuffleTimerRef.current) clearInterval(fastShuffleTimerRef.current);
+    if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
     
     isHoldingRef.current = false;
     
@@ -116,12 +131,14 @@ export default function App() {
       isHoldingRef.current = true;
       setIsFastShuffle(true);
       
-      // Start continuous shuffling
-      fastShuffleTimerRef.current = setInterval(() => {
-        triggerShuffle();
-      }, 350);
+      // Start continuous hue shifting animation (crossfade look)
+      const runHueShift = () => {
+        shiftPaletteHue(0.75); // Increments by 0.75 degrees per frame for a liquid smooth transition
+        animationFrameIdRef.current = requestAnimationFrame(runHueShift);
+      };
+      animationFrameIdRef.current = requestAnimationFrame(runHueShift);
     }, 250); // 250ms threshold
-  }, [triggerShuffle]);
+  }, [shiftPaletteHue]);
 
   const stopFastShuffle = useCallback(() => {
     if (holdTimeoutRef.current) {
@@ -129,17 +146,16 @@ export default function App() {
       holdTimeoutRef.current = null;
     }
     
-    if (fastShuffleTimerRef.current) {
-      clearInterval(fastShuffleTimerRef.current);
-      fastShuffleTimerRef.current = null;
+    if (animationFrameIdRef.current) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+      animationFrameIdRef.current = null;
     }
     
     if (isHoldingRef.current) {
-      // Releasing a hold: just turn off fast shuffle state so it animates back gracefully.
-      // Do NOT trigger another shuffle here, as that causes the "double shuffle" lag!
+      // Release from a hold: return to normal state and settle on the current hue-shifted colors
       setIsFastShuffle(false);
     } else {
-      // Single click: trigger a normal single shuffle with the perfect bouncy animation
+      // Single click: trigger a normal single shuffle once
       triggerShuffle();
     }
     
@@ -390,25 +406,25 @@ export default function App() {
       )}
 
       {/* Main color stripes screen */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isWelcomeState ? (
-          <motion.div key="welcome" className="absolute inset-0 z-20 bg-[#09090f]" exit={{ opacity: 0, transition: { duration: 0.4, delay: 0.3 } }}>
-            <WelcomeScreen onStart={triggerShuffle} />
-          </motion.div>
+          <WelcomeScreen key="welcome" onStart={triggerShuffle} />
         ) : (
           <motion.div key="generator"
             className="flex-1 flex flex-col md:flex-row h-full w-full overflow-hidden relative z-10"
             initial="hidden" animate="visible" exit="exit"
             variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } }, exit: { transition: { staggerChildren: 0.04, staggerDirection: -1 } } }}>
-            {palette.map((color, index) => (
-              <ColorBar key={color.id}
-                color={color} index={index} total={palette.length}
-                palette={palette}
-                isFastShuffle={isFastShuffle}
-                onToggleLock={handleToggleLock} onToggleRoleLock={handleToggleRoleLock}
-                onUpdateHex={handleUpdateHex}
-                onUpdateRole={handleUpdateRole} onCopy={handleCopyColor} />
-            ))}
+            <AnimatePresence mode="popLayout">
+              {palette.map((color, index) => (
+                <ColorBar key={color.id}
+                  color={color} index={index} total={palette.length}
+                  palette={palette}
+                  isFastShuffle={isFastShuffle}
+                  onToggleLock={handleToggleLock} onToggleRoleLock={handleToggleRoleLock}
+                  onUpdateHex={handleUpdateHex}
+                  onUpdateRole={handleUpdateRole} onCopy={handleCopyColor} />
+              ))}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -470,11 +486,7 @@ function WelcomeScreen({ onStart }) {
   const containerVariants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
-    exit: { 
-      scale: 0.92, 
-      filter: 'blur(12px)', 
-      transition: { duration: 0.45, ease: [0.4, 0, 1, 1] } 
-    }
+    exit: { opacity: 0, scale: 0.97, filter: 'blur(12px)', transition: { duration: 0.45, ease: [0.4, 0, 1, 1] } }
   };
   const itemVariants = {
     hidden: { opacity: 0, y: 28 },

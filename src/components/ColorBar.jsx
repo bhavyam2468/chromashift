@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Unlock, Sliders, Check, ChevronDown } from 'lucide-react';
 import { ROLE_DISPLAY, hslToHex } from '../utils/colorUtils';
@@ -38,31 +38,32 @@ function getNegativeColor(hex, alpha = 1) {
 export default function ColorBar({
   color, index, total, palette = [], isFastShuffle, onToggleLock, onToggleRoleLock, onUpdateHex, onUpdateRole, onCopy
 }) {
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showSliders, setShowSliders] = useState(false);
   const [isEditingHex, setIsEditingHex] = useState(false);
-  const [hexInput, setHexInput] = useState('');
-  const [copied, setCopied] = useState(false);
-  const hexInputRef = useRef(null);
+  const [tempHex, setTempHex] = useState(color.hex);
+  const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [justCopied, setJustCopied] = useState(false);
 
-  const light = color.l > 60;
-  const textColor = light ? '#000000' : '#ffffff';
+  const light = isLight(color.hex);
+  const textColor = getNegativeColor(color.hex, 0.92);
   const mutedColor = getNegativeColor(color.hex, 0.6);
   const overlayBg = getNegativeColor(color.hex, 0.08);
   const overlayBorder = getNegativeColor(color.hex, 0.15);
 
-  const handleCopy = (e) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(color.hex.toUpperCase());
-    setCopied(true);
-    onCopy?.(color.hex);
-    setTimeout(() => setCopied(false), 1200);
+  const handleCopy = () => {
+    onCopy(color.hex);
+    setJustCopied(true);
+    setTimeout(() => setJustCopied(false), 1200);
   };
 
   const handleHexSubmit = (e) => {
-    e.preventDefault();
-    if (/^#[0-9A-F]{6}$/i.test(hexInput)) {
-      onUpdateHex(color.id, hexInput);
+    e?.preventDefault();
+    let val = tempHex.trim();
+    if (!val.startsWith('#')) val = '#' + val;
+    if (/^#[0-9A-Fa-f]{6}$/.test(val) || /^#[0-9A-Fa-f]{3}$/.test(val)) {
+      onUpdateHex(color.id, val);
+    } else {
+      setTempHex(color.hex);
     }
     setIsEditingHex(false);
   };
@@ -72,205 +73,195 @@ export default function ColorBar({
   };
 
   const roleDisplay = ROLE_DISPLAY[color.role];
+  const isMobileLayout = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
-  const getBgVariants = (idx) => {
-    if (isFastShuffle) {
-      return {
-        hidden: { opacity: 0, scale: 1.05 },
-        visible: {
-          opacity: 1,
-          scale: 1,
-          transition: { duration: 0.15, ease: 'easeOut' }
-        },
-        exit: {
-          opacity: 1,
-          scale: 0.95,
-          transition: { duration: 0.15, ease: 'easeOut' }
-        }
-      };
-    } else {
-      return {
-        hidden: { scale: 0.92, opacity: 0, y: 15, filter: 'blur(8px)' },
-        visible: { 
-          scale: 1, 
-          opacity: 1, 
-          y: 0,
-          filter: 'blur(0px)', 
-          transition: { type: 'spring', stiffness: 350, damping: 28, delay: idx * 0.035 } 
-        },
-        exit: { 
-          scale: 0.95, 
-          opacity: 1, // Stay opaque so new color fades over it, preventing grey flashes
-          y: -10,
-          filter: 'blur(4px)', 
-          transition: { duration: 0.3, ease: 'easeOut' } 
-        }
-      };
+  const cardVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: { 
+      opacity: 1, 
+      scale: 1,
+      transition: { 
+        type: 'spring', 
+        stiffness: 280, 
+        damping: 24, 
+        delay: index * 0.035 
+      } 
+    },
+    exit: { 
+      opacity: 0, 
+      scale: 0.95,
+      transition: { duration: 0.2, ease: 'easeInOut' } 
     }
   };
-
-  const bgVariants = getBgVariants(index);
 
   return (
     <motion.div
       layout
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
       whileHover={{ flex: 1.3 }}
       transition={{ flex: { type: 'spring', stiffness: 260, damping: 28 } }}
       className="relative flex flex-row md:flex-col justify-between items-center h-full w-full group overflow-hidden cursor-pointer"
       style={{ flex: 1, minWidth: 0 }}
       onClick={!isEditingHex && !showRoleMenu && !showSliders ? handleCopy : undefined}
     >
-      {/* Background layer + all text labels / icons are nested inside for synchronized transitions */}
-      <AnimatePresence mode="popLayout">
+      {/* Background layer + all text labels / icons are nested inside for synchronized CSS transitions */}
+      <div
+        key={color.id}
+        className="absolute inset-0 flex flex-row md:flex-col justify-between items-center px-4 py-2 md:py-8 md:px-3 h-full w-full z-0 select-none"
+        style={{
+          backgroundColor: color.hex,
+          color: textColor,
+          transition: isFastShuffle
+            ? 'background-color 0.12s linear, color 0.12s linear, border-color 0.12s linear'
+            : 'background-color 0.65s cubic-bezier(0.16, 1, 0.3, 1), color 0.5s ease, border-color 0.5s ease',
+          transitionDelay: isFastShuffle
+            ? `${index * 0.012}s`
+            : `${index * 0.045}s`
+        }}
+      >
+        {/* Shimmer overlay */}
         <motion.div
-          key={color.hex}
-          variants={bgVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="absolute inset-0 flex flex-row md:flex-col justify-between items-center px-4 py-2 md:py-8 md:px-3 h-full w-full z-0 select-none"
-          style={{ backgroundColor: color.hex }}
-        >
-          {/* Shimmer overlay */}
+          className="absolute inset-0 pointer-events-none opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10"
+          style={{ background: `linear-gradient(135deg, ${light ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'} 0%, transparent 50%)` }}
+        />
+
+        {/* Lock indicator stripe */}
+        {color.locked && (
           <motion.div
-            className="absolute inset-0 pointer-events-none opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10"
-            style={{ background: `linear-gradient(135deg, ${light ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'} 0%, transparent 50%)` }}
+            className="absolute top-0 left-0 bottom-0 w-1 md:w-auto md:h-1 md:right-0 z-10"
+            style={{ backgroundColor: light ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.35)' }}
+            initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={SPRING}
           />
+        )}
 
-          {/* Lock indicator stripe */}
-          {color.locked && (
-            <motion.div
-              className="absolute top-0 left-0 bottom-0 w-1 md:w-auto md:h-1 md:right-0 z-10"
-              style={{ backgroundColor: light ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.35)' }}
-              initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={SPRING}
-            />
-          )}
+        {/* ─── Controls (Lock/Sliders) ─── */}
+        <div
+          className="flex flex-row md:flex-col items-center gap-1.5 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
+          onClick={e => e.stopPropagation()}
+        >
+          <motion.button whileTap={{ scale: 0.85 }} onClick={() => onToggleLock(color.id)}
+            className="p-2 md:p-2.5 rounded-xl transition-colors" style={{ backgroundColor: overlayBg, color: textColor }}>
+            {color.locked ? <Lock size={14} /> : <Unlock size={14} />}
+          </motion.button>
 
-          {/* ─── Controls (Lock/Sliders) ─── */}
-          <div
-            className="flex flex-row md:flex-col items-center gap-1.5 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
-            onClick={e => e.stopPropagation()}
-          >
-            <motion.button whileTap={{ scale: 0.85 }} onClick={() => onToggleLock(color.id)}
-              className="p-2 md:p-2.5 rounded-xl transition-colors" style={{ backgroundColor: overlayBg, color: textColor }}>
-              {color.locked ? <Lock size={14} /> : <Unlock size={14} />}
-            </motion.button>
+          <motion.button whileTap={{ scale: 0.85 }} onClick={() => setShowSliders(v => !v)}
+            className="p-2 md:p-2.5 rounded-xl transition-colors" style={{ backgroundColor: showSliders ? overlayBorder : overlayBg, color: textColor }}>
+            <Sliders size={14} />
+          </motion.button>
+        </div>
 
-            <motion.button whileTap={{ scale: 0.85 }} onClick={() => setShowSliders(v => !v)}
-              className="p-2 md:p-2.5 rounded-xl transition-colors" style={{ backgroundColor: showSliders ? overlayBorder : overlayBg, color: textColor }}>
-              <Sliders size={14} />
-            </motion.button>
-          </div>
+        {/* ─── Bottom Info (Role / HEX / Copy) ─── */}
+        <div className="flex flex-row md:flex-col items-center gap-3 z-10 shrink-0" onClick={e => e.stopPropagation()}>
+          
+          {/* Role tag dropdown with lock */}
+          <div className="relative flex items-center gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleRoleLock(color.id); }}
+              className="p-1 md:p-1.5 rounded-md transition-colors hover:bg-black/10"
+              style={{ backgroundColor: color.roleLocked ? (light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)') : 'transparent', color: mutedColor }}
+              title={color.roleLocked ? "Unlock role placement" : "Lock role placement"}
+            >
+              {color.roleLocked ? <Lock size={10} /> : <Unlock size={10} className="opacity-50" />}
+            </button>
 
-          {/* ─── Bottom Info (Role / HEX / Copy) ─── */}
-          <div className="flex flex-row md:flex-col items-center gap-3 z-10 shrink-0" onClick={e => e.stopPropagation()}>
-            
-            {/* Role tag dropdown with lock */}
-            <div className="relative flex items-center gap-1">
-              <button
-                onClick={(e) => { e.stopPropagation(); onToggleRoleLock(color.id); }}
-                className="p-1 md:p-1.5 rounded-md transition-colors hover:bg-black/10"
-                style={{ backgroundColor: color.roleLocked ? (light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)') : 'transparent', color: mutedColor }}
-                title={color.roleLocked ? "Unlock role placement" : "Lock role placement"}
-              >
-                {color.roleLocked ? <Lock size={10} /> : <Unlock size={10} className="opacity-50" />}
-              </button>
-
-              <button
-                onClick={() => setShowRoleMenu(v => !v)}
-                className="flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg transition-colors text-center"
-                style={{ backgroundColor: overlayBg, color: mutedColor }}
-              >
-                {roleDisplay ? (
-                  <span className="text-[8px] md:text-[9px] font-black tracking-[0.1em] uppercase leading-tight">
-                    {roleDisplay.prefix.slice(0, 4)}·{roleDisplay.suffix}
-                  </span>
-                ) : (
-                  <span className="text-[8px] font-bold uppercase opacity-50">Role</span>
-                )}
-                <ChevronDown size={10} className="opacity-60" />
-              </button>
-
-              <AnimatePresence>
-                {showRoleMenu && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setShowRoleMenu(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.92, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.92, y: 6 }} transition={SPRING}
-                      className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-30 rounded-2xl shadow-2xl overflow-hidden"
-                      style={{ width: 170, backgroundColor: light ? '#fff' : '#18182b', border: `1px solid ${overlayBorder}` }}
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <div className="px-3 py-2 text-[9px] font-black tracking-[0.15em] uppercase border-b"
-                        style={{ color: mutedColor, borderColor: overlayBorder }}>
-                        Assign Role
-                      </div>
-
-                      {['primary', 'secondary', 'background'].map(prefix => (
-                        <div key={prefix}>
-                          {['light', 'neutral', 'dark'].map(suffix => {
-                            const role = `${prefix}-${suffix}`;
-                            const display = ROLE_DISPLAY[role];
-                            const isActive = color.role === role;
-                            const isTaken = palette.some(c => c.role === role && c.id !== color.id);
-                            return (
-                              <button key={role}
-                                disabled={isTaken}
-                                onClick={() => { onUpdateRole(color.id, role); setShowRoleMenu(false); }}
-                                className={`flex items-center justify-between w-full px-3 py-1.5 text-[10px] font-semibold transition-colors ${isTaken ? 'opacity-35 cursor-not-allowed' : ''}`}
-                                style={{
-                                  color: textColor,
-                                  backgroundColor: isActive ? overlayBg : 'transparent',
-                                }}
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  {display.prefix} {display.suffix}
-                                  {isTaken && <span className="text-[7px] opacity-40 uppercase tracking-wider font-bold">(In Use)</span>}
-                                </span>
-                                {isActive && <Check size={10} className="opacity-60" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* HEX text display */}
-            {isEditingHex ? (
-              <form onSubmit={handleHexSubmit} onClick={e => e.stopPropagation()}>
-                <input type="text" value={tempHex}
-                  onChange={e => setTempHex(e.target.value)} onBlur={handleHexSubmit} autoFocus
-                  className="bg-transparent text-center font-mono font-bold text-xs md:text-sm tracking-wider w-20 border-b focus:outline-none"
-                  style={{ color: textColor, borderBottomColor: mutedColor }} />
-              </form>
-            ) : (
-              <div className="overflow-hidden relative h-5 flex items-center justify-center min-w-[70px]">
-                <span className="font-mono font-bold text-xs md:text-base tracking-wider" style={{ color: textColor }}>
-                  {color.hex.toUpperCase()}
-                </span>
-              </div>
-            )}
-
-            {/* Copy confirmation feedback (Desktop-only hint) */}
-            <div className="hidden md:block min-h-[14px]">
-              {justCopied ? (
-                <span className="text-[9px] font-bold flex items-center gap-1" style={{ color: mutedColor }}>
-                  Copied
+            <button
+              onClick={() => setShowRoleMenu(v => !v)}
+              className="flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg transition-colors text-center"
+              style={{ backgroundColor: overlayBg, color: mutedColor }}
+            >
+              {roleDisplay ? (
+                <span className="text-[8px] md:text-[9px] font-black tracking-[0.1em] uppercase leading-tight">
+                  {roleDisplay.prefix.slice(0, 4)}·{roleDisplay.suffix}
                 </span>
               ) : (
-                <span className="text-[9px] opacity-0 group-hover:opacity-50 transition-opacity" style={{ color: mutedColor }}>
-                  Copy
-                </span>
+                <span className="text-[8px] font-bold uppercase opacity-50">Role</span>
               )}
-            </div>
+              <ChevronDown size={10} className="opacity-60" />
+            </button>
+
+            <AnimatePresence>
+              {showRoleMenu && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setShowRoleMenu(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: 6 }} transition={SPRING}
+                    className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-30 rounded-2xl shadow-2xl overflow-hidden"
+                    style={{ width: 170, backgroundColor: light ? '#fff' : '#18182b', border: `1px solid ${overlayBorder}` }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="px-3 py-2 text-[9px] font-black tracking-[0.15em] uppercase border-b"
+                      style={{ color: mutedColor, borderColor: overlayBorder }}>
+                      Assign Role
+                    </div>
+
+                    {['primary', 'secondary', 'background'].map(prefix => (
+                      <div key={prefix}>
+                        {['light', 'neutral', 'dark'].map(suffix => {
+                          const role = `${prefix}-${suffix}`;
+                          const display = ROLE_DISPLAY[role];
+                          const isActive = color.role === role;
+                          const isTaken = palette.some(c => c.role === role && c.id !== color.id);
+                          return (
+                            <button key={role}
+                              disabled={isTaken}
+                              onClick={() => { onUpdateRole(color.id, role); setShowRoleMenu(false); }}
+                              className={`flex items-center justify-between w-full px-3 py-1.5 text-[10px] font-semibold transition-colors ${isTaken ? 'opacity-35 cursor-not-allowed' : ''}`}
+                              style={{
+                                color: textColor,
+                                backgroundColor: isActive ? overlayBg : 'transparent',
+                              }}
+                            >
+                              <span className="flex items-center gap-1.5">
+                                {display.prefix} {display.suffix}
+                                {isTaken && <span className="text-[7px] opacity-40 uppercase tracking-wider font-bold">(In Use)</span>}
+                              </span>
+                              {isActive && <Check size={10} className="opacity-60" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
-        </motion.div>
-      </AnimatePresence>
+
+          {/* HEX text display */}
+          {isEditingHex ? (
+            <form onSubmit={handleHexSubmit} onClick={e => e.stopPropagation()}>
+              <input type="text" value={tempHex}
+                onChange={e => setTempHex(e.target.value)} onBlur={handleHexSubmit} autoFocus
+                className="bg-transparent text-center font-mono font-bold text-xs md:text-sm tracking-wider w-20 border-b focus:outline-none"
+                style={{ color: textColor, borderBottomColor: mutedColor }} />
+            </form>
+          ) : (
+            <div className="overflow-hidden relative h-5 flex items-center justify-center min-w-[70px]">
+              <span className="font-mono font-bold text-xs md:text-base tracking-wider" style={{ color: textColor }}>
+                {color.hex.toUpperCase()}
+              </span>
+            </div>
+          )}
+
+          {/* Copy confirmation feedback (Desktop-only hint) */}
+          <div className="hidden md:block min-h-[14px]">
+            {justCopied ? (
+              <span className="text-[9px] font-bold flex items-center gap-1" style={{ color: mutedColor }}>
+                Copied
+              </span>
+            ) : (
+              <span className="text-[9px] opacity-0 group-hover:opacity-50 transition-opacity" style={{ color: mutedColor }}>
+                Copy
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
 
       {/* ─── HSL Sliders (Kept in parent to prevent containing block bugs) ─── */}
       <AnimatePresence>
