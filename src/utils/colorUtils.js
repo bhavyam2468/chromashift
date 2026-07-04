@@ -524,20 +524,32 @@ export function getSemanticColors(palette) {
   const bgRef = map['background-dark'] || map['background-light'] || map['background-neutral'];
   const bgH   = bgRef?.h ?? pH; // inherit primary hue for tinted bg
 
-  const bgLight   = getOrDerive('background-light',   'background-dark',    () => hslToHex(bgH, clamp(pS * 0.10, 3, 12), 96)) ?? hslToHex(bgH, clamp(pS * 0.10, 3, 12), 96);
-  const bgNeutral = getOrDerive('background-neutral',  'background-dark',   () => hslToHex(bgH, clamp(pS * 0.08, 3, 10), 45)) ?? hslToHex(bgH, clamp(pS * 0.08, 3, 10), 45);
-  const bgDark    = getOrDerive('background-dark',     'background-neutral', () => hslToHex(wrapHue(bgH + 5), clamp(pS * 0.15, 5, 18), 9))   ?? hslToHex(wrapHue(bgH + 5), clamp(pS * 0.15, 5, 18), 9);
+  // Use higher saturation multipliers (e.g. 0.3 instead of 0.15) so backgrounds are colorful, not grey
+  const bgLight   = getOrDerive('background-light',   'background-dark',    () => hslToHex(bgH, clamp(pS * 0.20, 10, 25), 96)) ?? hslToHex(bgH, clamp(pS * 0.20, 10, 25), 96);
+  const bgNeutral = getOrDerive('background-neutral',  'background-dark',   () => hslToHex(bgH, clamp(pS * 0.15, 8, 20), 45)) ?? hslToHex(bgH, clamp(pS * 0.15, 8, 20), 45);
+  const bgDark    = getOrDerive('background-dark',     'background-neutral', () => hslToHex(wrapHue(bgH + 5), clamp(pS * 0.35, 15, 45), 9))   ?? hslToHex(wrapHue(bgH + 5), clamp(pS * 0.35, 15, 45), 9);
+
+  // Calculate rich, saturated card surfaces by pulling the HSL of the computed backgrounds
+  const darkHsl = hexToHsl(bgDark);
+  const surfaceDark = hslToHex(darkHsl.h, darkHsl.s, clamp(darkHsl.l + 4, 0, 100));
+  const surfaceHDark = hslToHex(darkHsl.h, darkHsl.s, clamp(darkHsl.l + 7, 0, 100));
+
+  const lightHsl = hexToHsl(bgLight);
+  const surfaceLight = hslToHex(lightHsl.h, lightHsl.s, clamp(lightHsl.l - 2, 0, 100));
+  const surfaceHLight = hslToHex(lightHsl.h, lightHsl.s, clamp(lightHsl.l - 4, 0, 100));
 
   // Text & muted — derived from hues present, not hardcoded
   const textOnLight  = primaryDark;
   const textOnDark   = bgLight;
-  const mutedOnLight = hslToHex(bgH, clamp(pS * 0.15, 5, 20), 52);
-  const mutedOnDark  = hslToHex(bgH, clamp(pS * 0.08, 3, 12), 65);
+  const mutedOnLight = hslToHex(bgH, clamp(pS * 0.25, 15, 30), 52);
+  const mutedOnDark  = hslToHex(bgH, clamp(pS * 0.20, 15, 25), 65);
 
   return {
     primary, primaryLight, primaryDark,
     secondary, secondaryLight, secondaryDark,
     bgLight, bgNeutral, bgDark,
+    surfaceDark, surfaceHDark,
+    surfaceLight, surfaceHLight,
     textOnLight, textOnDark,
     mutedOnLight, mutedOnDark,
   };

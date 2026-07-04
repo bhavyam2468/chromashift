@@ -13,8 +13,8 @@ export default function TemplatePreview({ isOpen, onClose, palette }) {
 
   // Dynamic theme-aware style factories
   const bg       = isDark ? sc.bgDark     : sc.bgLight;
-  const surface  = isDark ? lighten(sc.bgDark, 6) : darken(sc.bgLight, 3);
-  const surfaceH = isDark ? lighten(sc.bgDark, 10) : darken(sc.bgLight, 6);
+  const surface  = isDark ? sc.surfaceDark : sc.surfaceLight;
+  const surfaceH = isDark ? sc.surfaceHDark : sc.surfaceHLight;
   const text     = isDark ? sc.textOnDark : sc.textOnLight;
   const muted    = isDark ? sc.mutedOnDark : sc.mutedOnLight;
   const border   = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
