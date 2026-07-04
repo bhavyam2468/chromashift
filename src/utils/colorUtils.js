@@ -66,7 +66,6 @@ export function contrastRatio(hex1, hex2) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-// Adjust fg lightness until it meets minRatio against bg
 function ensureContrast(fgHsl, bgHex, minRatio = 4.5) {
   let { h, s, l } = fgHsl;
   let hex = hslToHex(h, s, l);
@@ -109,160 +108,272 @@ export const ROLE_DISPLAY = {
   'background-dark':    { prefix: 'Background', suffix: 'Dark' },
 };
 
-// ─── Mood Presets ─────────────────────────────────────────────────────────────
+// ─── Harmony Types ────────────────────────────────────────────────────────────
+//
+// Mathematical basis for each type:
+//
+// MONOCHROMATIC  → secondaryOffset = 0
+//   All hues identical. Only L and S vary. Maximum cohesion, minimum contrast.
+//   For N swatches, spread L evenly: L_i = 15 + i * (75 / (N-1))
+//
+// ANALOGOUS → secondaryOffset ∈ [20°, 45°]
+//   Secondary sits within 1/6 of the wheel from primary. The eye perceives
+//   hues <45° apart as "related". Works because opponent-channel signals
+//   partially overlap, creating a seamless temperature gradient.
+//
+// COMPLEMENTARY → secondaryOffset = 180°
+//   Opposite on the wheel. Maximum perceptual contrast (opponent-channel
+//   signals are maximally differentiated). Split complement = ±150° instead
+//   of exact 180° to soften tension.
+//
+// SPLIT-COMPLEMENTARY → secondaryOffset = 150° or 210°
+//   One base + two colors on either side of the complement. Less tension
+//   than pure complementary, but still high contrast. The 30° deviation
+//   reduces the harshness of direct opposition.
+//
+// TRIADIC → offsets = [120°, 240°]
+//   Three hues equally spaced at 120°. Each pair has ~max distance,
+//   so all three pop. The eye sees "vibrant balance". Needs careful
+//   saturation control to prevent chaos.
+//
+// TETRADIC (Square) → offsets = [90°, 180°, 270°]
+//   Four hues at 90° intervals. Pairs are all complementary, giving
+//   maximum variety. Requires one dominant hue + others as accents.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 
-export const MOOD_PRESETS = {
-  earth: {
-    name: 'Earth & Clay',
-    description: 'Warm, organic. Terracotta, sand, deep browns.',
-    seedHueRange: [20, 40],
-    baseSatRange: [25, 45],
-    secondaryOffset: 170,
+export const HARMONY_TYPES = {
+  monochromatic: {
+    name: 'Monochromatic',
+    icon: 'circle',
+    description: 'Single hue, varied lightness & saturation. Maximum cohesion.',
+    variants: {
+      deep_focus:    { name: 'Deep Focus', seedHueRange: [200, 240], baseSatRange: [35, 55], offsets: [0, 0] },
+      warm_tones:    { name: 'Warm Ember', seedHueRange: [15, 40], baseSatRange: [40, 60], offsets: [0, 0] },
+      sage_calm:     { name: 'Sage Calm', seedHueRange: [95, 145], baseSatRange: [25, 45], offsets: [0, 0] },
+      amethyst:      { name: 'Amethyst', seedHueRange: [260, 290], baseSatRange: [40, 65], offsets: [0, 0] },
+      slate_minimal: { name: 'Slate Minimal', seedHueRange: [200, 220], baseSatRange: [8, 18], offsets: [0, 0] },
+      rose_blush:    { name: 'Rose Blush', seedHueRange: [330, 355], baseSatRange: [35, 55], offsets: [0, 0] },
+    },
   },
-  ocean: {
-    name: 'Ocean Depth',
-    description: 'Serene, trustworthy. Deep blues and teals.',
-    seedHueRange: [195, 225],
-    baseSatRange: [40, 65],
-    secondaryOffset: 45,
+
+  analogous: {
+    name: 'Analogous',
+    icon: 'arc',
+    description: 'Adjacent hues (20–45° apart). Harmonious, natural gradients.',
+    variants: {
+      ocean:    { name: 'Ocean Depth', seedHueRange: [190, 220], baseSatRange: [45, 65], offsets: [28, 0] },
+      forest:   { name: 'Forest Moss', seedHueRange: [100, 145], baseSatRange: [30, 55], offsets: [30, 0] },
+      earth:    { name: 'Earth & Clay', seedHueRange: [20, 40], baseSatRange: [25, 45], offsets: [22, 0] },
+      aurora:   { name: 'Aurora Borealis', seedHueRange: [145, 195], baseSatRange: [50, 75], offsets: [35, 0] },
+      sundown:  { name: 'Sundown', seedHueRange: [0, 30], baseSatRange: [55, 80], offsets: [28, 0] },
+      lavender: { name: 'Lavender Field', seedHueRange: [255, 285], baseSatRange: [40, 62], offsets: [25, 0] },
+    },
   },
-  sunset: {
-    name: 'Sunset Warmth',
-    description: 'Passionate, vibrant. Crimson, coral, amber.',
-    seedHueRange: [0, 25],
-    baseSatRange: [55, 80],
-    secondaryOffset: 180,
+
+  complementary: {
+    name: 'Complementary',
+    icon: 'yin-yang',
+    description: 'Opposite hues (180° apart). Maximum contrast, bold tension.',
+    variants: {
+      ocean_coral:  { name: 'Ocean & Coral', seedHueRange: [195, 215], baseSatRange: [55, 75], offsets: [180, 0] },
+      violet_gold:  { name: 'Violet & Gold', seedHueRange: [265, 285], baseSatRange: [55, 75], offsets: [180, 0] },
+      forest_magenta: { name: 'Forest & Magenta', seedHueRange: [110, 145], baseSatRange: [45, 65], offsets: [180, 0] },
+      sunset_teal:  { name: 'Sunset & Teal', seedHueRange: [10, 30], baseSatRange: [60, 80], offsets: [180, 0] },
+      rose_sage:    { name: 'Rose & Sage', seedHueRange: [338, 355], baseSatRange: [45, 65], offsets: [180, 0] },
+      neon_electric: { name: 'Neon Electric', seedHueRange: [0, 360], baseSatRange: [85, 100], offsets: [180, 0] },
+    },
   },
-  forest: {
-    name: 'Forest Moss',
-    description: 'Balanced, natural. Deep greens and earthy tones.',
-    seedHueRange: [100, 150],
-    baseSatRange: [30, 55],
-    secondaryOffset: 30,
+
+  split_complementary: {
+    name: 'Split-Complementary',
+    icon: 'split',
+    description: '±150° from primary. Tension of complementary, softened.',
+    variants: {
+      tropical:  { name: 'Tropical Burst', seedHueRange: [170, 200], baseSatRange: [60, 80], offsets: [150, 0] },
+      dusk:      { name: 'Violet Dusk', seedHueRange: [260, 285], baseSatRange: [50, 70], offsets: [150, 0] },
+      wildflower: { name: 'Wildflower', seedHueRange: [330, 355], baseSatRange: [45, 65], offsets: [150, 0] },
+      citrus:    { name: 'Citrus Pop', seedHueRange: [35, 55], baseSatRange: [70, 90], offsets: [150, 0] },
+      arctic:    { name: 'Arctic Frost', seedHueRange: [195, 220], baseSatRange: [30, 50], offsets: [150, 0] },
+      desert:    { name: 'Desert Storm', seedHueRange: [25, 45], baseSatRange: [35, 55], offsets: [150, 0] },
+    },
   },
-  violet: {
-    name: 'Violet Dusk',
-    description: 'Ethereal, creative. Purple and mauve with golden accent.',
-    seedHueRange: [260, 290],
-    baseSatRange: [45, 70],
-    secondaryOffset: 60,
+
+  triadic: {
+    name: 'Triadic',
+    icon: 'triangle',
+    description: '3 hues at 120° apart. Vibrant, balanced, festive energy.',
+    variants: {
+      primary_vivid: { name: 'Primary Vivid', seedHueRange: [0, 20], baseSatRange: [65, 85], offsets: [120, 240] },
+      tropic:        { name: 'Tropic Punch', seedHueRange: [160, 185], baseSatRange: [60, 80], offsets: [120, 240] },
+      festival:      { name: 'Festival', seedHueRange: [260, 290], baseSatRange: [65, 85], offsets: [120, 240] },
+      muted_triad:   { name: 'Muted Triad', seedHueRange: [40, 60], baseSatRange: [25, 45], offsets: [120, 240] },
+      jewel:         { name: 'Jewel Tones', seedHueRange: [200, 230], baseSatRange: [55, 75], offsets: [120, 240] },
+    },
   },
-  slate: {
-    name: 'Minimal Slate',
-    description: 'Clean, professional. Near-monochrome with subtle tinting.',
-    seedHueRange: [200, 220],
-    baseSatRange: [8, 20],
-    secondaryOffset: 0,
-  },
-  neon: {
-    name: 'Neon Electric',
-    description: 'High energy, bold. Vivid saturated tones.',
-    seedHueRange: [0, 360],
-    baseSatRange: [85, 100],
-    secondaryOffset: 180,
-  },
-  blush: {
-    name: 'Blush & Rose',
-    description: 'Soft, feminine. Warm pinks with sage green accent.',
-    seedHueRange: [330, 355],
-    baseSatRange: [40, 65],
-    secondaryOffset: 150,
+
+  tetradic: {
+    name: 'Tetradic (Square)',
+    icon: 'square',
+    description: '4 hues at 90° intervals. Rich variety, needs one dominant.',
+    variants: {
+      rich_vivid: { name: 'Rich & Vivid', seedHueRange: [10, 30], baseSatRange: [60, 80], offsets: [90, 180, 270] },
+      soft_pastel: { name: 'Soft Pastel', seedHueRange: [0, 360], baseSatRange: [25, 40], offsets: [90, 180, 270] },
+      jewel_square: { name: 'Jewel Square', seedHueRange: [200, 230], baseSatRange: [50, 70], offsets: [90, 180, 270] },
+      earthy_quad: { name: 'Earthy Quad', seedHueRange: [30, 60], baseSatRange: [30, 50], offsets: [90, 180, 270] },
+    },
   },
 };
+
+// ─── Build old MOOD_PRESETS for backward compat ────────────────────────────────
+
+export const MOOD_PRESETS = {};
+for (const [typeKey, type] of Object.entries(HARMONY_TYPES)) {
+  for (const [varKey, variant] of Object.entries(type.variants)) {
+    const key = `${typeKey}__${varKey}`;
+    MOOD_PRESETS[key] = {
+      name: variant.name,
+      description: type.description,
+      seedHueRange: variant.seedHueRange,
+      baseSatRange: variant.baseSatRange,
+      secondaryOffset: variant.offsets[0] ?? 0,
+      extraOffsets: variant.offsets.slice(1),
+      harmonyType: typeKey,
+    };
+  }
+}
+
+// Default mood key (used on first load)
+export const DEFAULT_HARMONY = 'analogous';
+export const DEFAULT_VARIANT = 'ocean';
 
 // ─── Seed → 9-Color Palette Generation ────────────────────────────────────────
 
 /**
- * The core algorithm. From a seed hue + mood, derive all 9 colors.
+ * The core algorithm. From a seed hue + harmony config, derive all 9 colors.
  *
- * Techniques used:
- * - Hue shifting (Refactoring UI): warmer when lighter, cooler when darker
- * - Tinted neutrals (M3): backgrounds use same hue as primary, very low saturation
- * - Saturation scaling: backgrounds get S×0.10, secondaries get S×0.75
- * - WCAG contrast verification on key pairs
+ * Swatch-count distribution:
+ *   3  swatches → bg-dark, primary-neutral, primary-light
+ *   5  swatches → + secondary-neutral, bg-light
+ *   7  swatches → + primary-dark, secondary-light
+ *   9  swatches → all 9 roles
+ *
+ * For each harmony type, hue sources differ:
+ *   Monochromatic: primary H = secondary H = background H (only L/S vary)
+ *   Analogous: secondary H = H + 20-45°
+ *   Complementary: secondary H = H + 180°
+ *   Split-comp: secondary H = H + 150° (or 210°)
+ *   Triadic: secondary H = H + 120°, background hues shifted ±30°
+ *   Tetradic: uses H, H+90°, H+180°, H+270° in rotation
  */
-function derive9Colors(seedHue, baseSat, secondaryOffset) {
+function derive9Colors(seedHue, baseSat, offsets, harmonyType) {
   const H = wrapHue(seedHue);
   const S = baseSat;
-  const secH = wrapHue(H + secondaryOffset);
+
+  // Compute secondary/tertiary hues based on harmony type
+  let secH, bgH;
+
+  if (harmonyType === 'monochromatic') {
+    secH = H;
+    bgH  = H;
+  } else if (harmonyType === 'triadic') {
+    secH = wrapHue(H + (offsets[0] ?? 120));
+    bgH  = wrapHue(H + (offsets[1] ?? 240));
+  } else if (harmonyType === 'tetradic') {
+    secH = wrapHue(H + (offsets[0] ?? 90));
+    bgH  = wrapHue(H + (offsets[1] ?? 180)); // use H+180 for backgrounds
+  } else {
+    secH = wrapHue(H + (offsets[0] ?? 0));
+    bgH  = H;
+  }
+
+  // Saturation scaling by harmony type
+  const monoScale = harmonyType === 'monochromatic' ? 1.2 : 1.0;
+  const secSScale = harmonyType === 'triadic' ? 0.85 : harmonyType === 'tetradic' ? 0.80 : 0.75;
+  const bgSScale  = 0.10;
 
   const palette = {
     'primary-light': {
-      h: wrapHue(H - 8),         // shift warm
-      s: clamp(S * 0.65, 12, 80),
+      h: wrapHue(H - 8),
+      s: clamp(S * 0.65 * monoScale, 12, 80),
       l: rand(78, 85),
     },
     'primary-neutral': {
       h: H,
-      s: clamp(S, 15, 100),
+      s: clamp(S * monoScale, 15, 100),
       l: rand(45, 55),
     },
     'primary-dark': {
-      h: wrapHue(H + 8),         // shift cool
-      s: clamp(S * 1.1, 18, 100),
+      h: wrapHue(H + 8),
+      s: clamp(S * 1.1 * monoScale, 18, 100),
       l: rand(25, 32),
     },
     'secondary-light': {
       h: wrapHue(secH - 6),
-      s: clamp(S * 0.55, 10, 75),
+      s: clamp(S * secSScale * 0.75, 10, 75),
       l: rand(76, 83),
     },
     'secondary-neutral': {
       h: secH,
-      s: clamp(S * 0.75, 12, 90),
+      s: clamp(S * secSScale, 12, 90),
       l: rand(42, 52),
     },
     'secondary-dark': {
       h: wrapHue(secH + 6),
-      s: clamp(S * 0.85, 15, 95),
+      s: clamp(S * secSScale * 1.1, 15, 95),
       l: rand(22, 30),
     },
     'background-light': {
-      h: H,
-      s: clamp(S * 0.10, 3, 15),  // barely tinted
+      h: bgH,
+      s: clamp(S * bgSScale, 3, 15),
       l: rand(95, 98),
     },
     'background-neutral': {
-      h: H,
+      h: bgH,
       s: clamp(S * 0.08, 3, 12),
       l: rand(40, 50),
     },
     'background-dark': {
-      h: wrapHue(H + 5),
+      h: wrapHue(bgH + 5),
       s: clamp(S * 0.15, 5, 20),
       l: rand(6, 12),
     },
   };
 
-  // Verify key contrast pairs and adjust if needed
-  const bgLightHex = hslToHex(palette['background-light'].h, palette['background-light'].s, palette['background-light'].l);
-  const bgDarkHex = hslToHex(palette['background-dark'].h, palette['background-dark'].s, palette['background-dark'].l);
+  // Monochromatic: explicitly space lightness across the full range
+  if (harmonyType === 'monochromatic') {
+    palette['primary-light'].l    = rand(80, 88);
+    palette['primary-neutral'].l  = rand(52, 60);
+    palette['primary-dark'].l     = rand(28, 36);
+    palette['secondary-light'].l  = rand(74, 82);
+    palette['secondary-neutral'].l = rand(44, 52);
+    palette['secondary-dark'].l   = rand(20, 28);
+  }
 
-  // Primary-neutral must be readable on both backgrounds
-  palette['primary-neutral'] = ensureContrast(palette['primary-neutral'], bgLightHex, 4.5);
-  palette['primary-dark'] = ensureContrast(palette['primary-dark'], bgLightHex, 4.5);
-  palette['primary-light'] = ensureContrast(palette['primary-light'], bgDarkHex, 4.5);
+  // Verify key contrast pairs
+  const bgLightHex = hslToHex(palette['background-light'].h, palette['background-light'].s, palette['background-light'].l);
+  const bgDarkHex  = hslToHex(palette['background-dark'].h,  palette['background-dark'].s,  palette['background-dark'].l);
+
+  palette['primary-neutral']   = ensureContrast(palette['primary-neutral'],   bgLightHex, 4.5);
+  palette['primary-dark']      = ensureContrast(palette['primary-dark'],      bgLightHex, 4.5);
+  palette['primary-light']     = ensureContrast(palette['primary-light'],     bgDarkHex,  4.5);
   palette['secondary-neutral'] = ensureContrast(palette['secondary-neutral'], bgLightHex, 3.5);
 
   return palette;
 }
 
 /**
- * Main export: generate a palette array of `size` colors from a mood preset.
- *
- * @param {number} size - How many colors (3–9)
- * @param {string} moodKey - Key into MOOD_PRESETS
- * @param {Array} currentPalette - Existing palette (for locked colors)
- * @returns {Array} Array of color objects with { id, hex, h, s, l, locked, role }
+ * Main export: generate a palette array of `size` colors from a harmony/variant key.
  */
 export function generatePalette(size, moodKey, currentPalette = []) {
-  const mood = MOOD_PRESETS[moodKey] || MOOD_PRESETS.earth;
+  // Support both legacy keys ("earth") and new keys ("analogous__ocean")
+  const mood = MOOD_PRESETS[moodKey] || MOOD_PRESETS['analogous__ocean'];
   size = clamp(size, 3, 9);
 
   // Determine seed from locked colors or random from mood range
   let seedHue, baseSat;
   const lockedPrimary = currentPalette.find(c => c.locked && c.role?.startsWith('primary'));
-  const anyLocked = currentPalette.find(c => c.locked);
+  const anyLocked     = currentPalette.find(c => c.locked);
 
   if (lockedPrimary) {
     seedHue = lockedPrimary.h;
@@ -276,10 +387,12 @@ export function generatePalette(size, moodKey, currentPalette = []) {
     baseSat = rand(mood.baseSatRange[0], mood.baseSatRange[1]);
   }
 
-  // Generate the full 9-color derived set
-  const derived = derive9Colors(seedHue, baseSat, mood.secondaryOffset);
+  const offsets    = [mood.secondaryOffset, ...(mood.extraOffsets || [])];
+  const harmonyType = mood.harmonyType || 'analogous';
 
-  // Priority order for filling roles
+  const derived = derive9Colors(seedHue, baseSat, offsets, harmonyType);
+
+  // Priority order for filling roles (ordered by visual importance)
   const priorityOrder = [
     'primary-neutral',
     'background-light',
@@ -292,24 +405,21 @@ export function generatePalette(size, moodKey, currentPalette = []) {
     'background-neutral',
   ];
 
-  const newPalette = new Array(size);
-  const usedRoles = new Set();
-
+  const newPalette    = new Array(size);
+  const usedRoles     = new Set();
   const assignedRoles = new Array(size).fill(null);
 
-  // Step 1: Place locked colors at their exact indices
+  // Step 1: Preserve locked colors
   for (let i = 0; i < size; i++) {
     const existing = currentPalette[i];
     if (existing && existing.locked) {
-      newPalette[i] = { ...existing };
-      assignedRoles[i] = existing.role;
-      if (existing.role) {
-        usedRoles.add(existing.role);
-      }
+      newPalette[i]     = { ...existing };
+      assignedRoles[i]  = existing.role;
+      if (existing.role) usedRoles.add(existing.role);
     }
   }
 
-  // Step 1.5: Reserve roles for slots with roleLocked
+  // Step 1.5: Reserve roles for roleLocked slots
   for (let i = 0; i < size; i++) {
     if (newPalette[i]) continue;
     const existing = currentPalette[i];
@@ -319,7 +429,7 @@ export function generatePalette(size, moodKey, currentPalette = []) {
     }
   }
 
-  // Step 2: Determine remaining roles and randomize them
+  // Step 2: Assign remaining roles randomly from priority list
   const unassignedSlots = [];
   for (let i = 0; i < size; i++) {
     if (!assignedRoles[i]) unassignedSlots.push(i);
@@ -334,37 +444,34 @@ export function generatePalette(size, moodKey, currentPalette = []) {
     }
   }
 
-  // Fisher-Yates shuffle the remaining roles to randomize semantic placement
+  // Fisher-Yates shuffle
   for (let i = remainingRoles.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [remainingRoles[i], remainingRoles[j]] = [remainingRoles[j], remainingRoles[i]];
   }
 
   for (let i = 0; i < unassignedSlots.length; i++) {
-    const slotIdx = unassignedSlots[i];
-    assignedRoles[slotIdx] = remainingRoles[i] || 'primary-neutral';
+    assignedRoles[unassignedSlots[i]] = remainingRoles[i] || 'primary-neutral';
   }
 
   // Step 3: Generate colors for unlocked slots
   for (let i = 0; i < size; i++) {
-    if (newPalette[i]) continue; // Already filled by locked color
-
+    if (newPalette[i]) continue;
     const existingSlot = currentPalette[i];
-    const slotId = (existingSlot && existingSlot.id) || Math.random().toString(36).substr(2, 9);
-    
-    const role = assignedRoles[i];
-    const hsl = derived[role] || derived['primary-neutral'];
-    const hex = hslToHex(hsl.h, hsl.s, hsl.l);
+    const slotId       = (existingSlot && existingSlot.id) || Math.random().toString(36).substr(2, 9);
+    const role         = assignedRoles[i];
+    const hsl          = derived[role] || derived['primary-neutral'];
+    const hex          = hslToHex(hsl.h, hsl.s, hsl.l);
 
     newPalette[i] = {
-      id: slotId,
+      id:         slotId,
       hex,
-      h: hsl.h,
-      s: hsl.s,
-      l: hsl.l,
-      locked: false,
+      h:          hsl.h,
+      s:          hsl.s,
+      l:          hsl.l,
+      locked:     false,
       roleLocked: existingSlot ? !!existingSlot.roleLocked : false,
-      role: role,
+      role,
     };
   }
 
@@ -375,8 +482,6 @@ export function generatePalette(size, moodKey, currentPalette = []) {
 
 /**
  * Extracts a structured color map from a palette array for use in templates.
- * Returns an object with all 9 roles mapped to their hex values,
- * with sensible fallbacks if not all roles are present.
  */
 export function getSemanticColors(palette) {
   const map = {};
@@ -384,28 +489,26 @@ export function getSemanticColors(palette) {
     if (c.role) map[c.role] = c;
   }
 
-  // Helper: get hex or fallback
   const get = (role, fallbackRole, fallbackHex) => {
     if (map[role]) return map[role].hex;
     if (fallbackRole && map[fallbackRole]) return map[fallbackRole].hex;
     return fallbackHex;
   };
 
-  const primary = get('primary-neutral', null, '#6366f1');
-  const primaryLight = get('primary-light', 'primary-neutral', primary);
-  const primaryDark = get('primary-dark', 'primary-neutral', primary);
-  const secondary = get('secondary-neutral', 'primary-neutral', primary);
+  const primary       = get('primary-neutral', null, '#6366f1');
+  const primaryLight  = get('primary-light',   'primary-neutral', primary);
+  const primaryDark   = get('primary-dark',    'primary-neutral', primary);
+  const secondary     = get('secondary-neutral', 'primary-neutral', primary);
   const secondaryLight = get('secondary-light', 'secondary-neutral', secondary);
-  const secondaryDark = get('secondary-dark', 'secondary-neutral', secondary);
-  const bgLight = get('background-light', null, '#F5F5F5');
-  const bgNeutral = get('background-neutral', null, '#6B7280');
-  const bgDark = get('background-dark', null, '#111111');
+  const secondaryDark  = get('secondary-dark',  'secondary-neutral', secondary);
+  const bgLight       = get('background-light', null, '#F5F5F5');
+  const bgNeutral     = get('background-neutral', null, '#6B7280');
+  const bgDark        = get('background-dark',  null, '#111111');
 
-  // Derive text colors: dark text for light bg, light text for dark bg
-  const textOnLight = primaryDark;
-  const textOnDark = bgLight;
-  const mutedOnLight = bgNeutral;
-  const mutedOnDark = hslToHex(
+  const textOnLight   = primaryDark;
+  const textOnDark    = bgLight;
+  const mutedOnLight  = bgNeutral;
+  const mutedOnDark   = hslToHex(
     (map['background-neutral']?.h || 0),
     clamp((map['background-neutral']?.s || 10) * 0.6, 3, 15),
     65

@@ -1,25 +1,27 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, Palette, Lock, Unlock, Mountain, Waves, Sunrise, Leaf, Moon, Briefcase, Zap, Heart } from 'lucide-react';
+import { HelpCircle, Lock, Unlock, ChevronRight, Circle, Triangle, Square } from 'lucide-react';
 import ColorBar from './components/ColorBar';
 import ControlPanel from './components/ControlPanel';
 import TemplatePreview from './components/TemplatePreview';
-import { generatePalette, MOOD_PRESETS, hexToHsl, hslToHex } from './utils/colorUtils';
+import { generatePalette, MOOD_PRESETS, HARMONY_TYPES, DEFAULT_HARMONY, DEFAULT_VARIANT, hexToHsl, hslToHex } from './utils/colorUtils';
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 30 };
 
-const MOOD_ICONS = {
-  earth: Mountain,
-  ocean: Waves,
-  sunset: Sunrise,
-  forest: Leaf,
-  violet: Moon,
-  slate: Briefcase,
-  neon: Zap,
-  blush: Heart,
+// Map harmony types to display icons
+const HARMONY_ICONS = {
+  monochromatic:      Circle,
+  analogous:          Circle,
+  complementary:      Circle,
+  split_complementary: Circle,
+  triadic:            Triangle,
+  tetradic:           Square,
 };
 
-const MOOD_ORDER = ['earth', 'ocean', 'sunset', 'forest', 'violet', 'slate', 'neon', 'blush'];
+// Flat ordered list of all [harmonyType, variantKey] pairs for cycling
+const ALL_MOODS = Object.entries(HARMONY_TYPES).flatMap(([typeKey, type]) =>
+  Object.keys(type.variants).map(varKey => `${typeKey}__${varKey}`)
+);
 
 function isColorLight(hex) {
   if (!hex) return false;
@@ -32,8 +34,11 @@ function isColorLight(hex) {
 
 export default function App() {
   const [size, setSize] = useState(5);
-  const [activeTheme, setActiveTheme] = useState('earth');
+  // activeTheme = compound key: "harmonyType__variantKey"
+  const [activeTheme, setActiveTheme] = useState(`${DEFAULT_HARMONY}__${DEFAULT_VARIANT}`);
   const [isMoodLocked, setIsMoodLocked] = useState(false);
+  const [showHarmonyPicker, setShowHarmonyPicker] = useState(false);
+  const [pickerHarmonyType, setPickerHarmonyType] = useState(DEFAULT_HARMONY);
   const [transitionStyle, setTransitionStyle] = useState('cascade');
   const [palette, setPalette] = useState([]);
   const [isWelcomeState, setIsWelcomeState] = useState(true);
@@ -80,10 +85,9 @@ export default function App() {
 
   const cycleMood = useCallback(() => {
     const { activeTheme } = stateRef.current;
-    const currentIndex = MOOD_ORDER.indexOf(activeTheme);
-    const nextIndex = (currentIndex + 1) % MOOD_ORDER.length;
-    const nextTheme = MOOD_ORDER[nextIndex];
-    setActiveTheme(nextTheme);
+    const currentIndex = ALL_MOODS.indexOf(activeTheme);
+    const nextIndex = (currentIndex + 1) % ALL_MOODS.length;
+    setActiveTheme(ALL_MOODS[nextIndex]);
   }, []);
 
   const triggerShuffle = useCallback(() => {
@@ -224,59 +228,117 @@ export default function App() {
       <motion.div className="absolute inset-0 pointer-events-none z-0"
         animate={{ background: ambientGradient }} transition={{ duration: isFastShuffle ? 0.14 : 1.8, ease: 'easeInOut' }} />
 
-      {/* Floating Mood Lock (Top Left) */}
+      {/* Floating Harmony Picker (Top Left) */}
       {!isWelcomeState && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8, x: -20 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.8, x: -20 }}
           transition={SPRING}
-          className="fixed top-6 left-6 z-30 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white shadow-lg select-none"
+          className="fixed top-6 left-6 z-30"
         >
-          <div className="w-4 h-4 flex items-center justify-center">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={activeTheme}
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.6 }}
-                transition={{ duration: 0.18 }}
-              >
-                {(() => {
-                  const Icon = MOOD_ICONS[activeTheme] || Mountain;
-                  return <Icon size={13} className="text-white/60" />;
-                })()}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-          
-          <div className="overflow-hidden relative h-4 flex items-center min-w-[100px]">
+          {/* Trigger pill */}
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-lg select-none">
             <AnimatePresence mode="wait" initial={false}>
               <motion.button
                 key={activeTheme}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: isFastShuffle ? 0.12 : 0.22, ease: 'easeInOut' }}
-                onClick={cycleMood}
-                className="absolute text-[11px] font-bold text-white hover:text-white/80 transition-colors whitespace-nowrap text-left"
-                title="Click to cycle mood"
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: isFastShuffle ? 0.1 : 0.2 }}
+                onClick={() => !isMoodLocked && setShowHarmonyPicker(v => !v)}
+                className="flex flex-col items-start leading-none gap-0.5 min-w-[110px]"
               >
-                {MOOD_PRESETS[activeTheme]?.name}
+                <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/35">
+                  {HARMONY_TYPES[activeTheme.split('__')[0]]?.name}
+                </span>
+                <span className="text-[11px] font-bold text-white whitespace-nowrap">
+                  {MOOD_PRESETS[activeTheme]?.name}
+                </span>
               </motion.button>
             </AnimatePresence>
+            <div className="w-[1px] h-5 bg-white/10 mx-0.5" />
+            <button
+              onClick={() => setIsMoodLocked(!isMoodLocked)}
+              className="p-1 rounded-md hover:bg-white/5 transition-colors"
+              style={{ color: isMoodLocked ? '#34d399' : 'rgba(255,255,255,0.4)' }}
+              title={isMoodLocked ? 'Unlock Harmony' : 'Lock Harmony'}
+            >
+              {isMoodLocked ? <Lock size={11} /> : <Unlock size={11} />}
+            </button>
           </div>
-          
-          <div className="w-[1px] h-3 bg-white/10 mx-1" />
-          
-          <button
-            onClick={() => setIsMoodLocked(!isMoodLocked)}
-            className="p-1 rounded-md hover:bg-white/5 transition-colors"
-            style={{ color: isMoodLocked ? '#34d399' : 'rgba(255,255,255,0.4)' }}
-            title={isMoodLocked ? 'Unlock Mood' : 'Lock Mood'}
-          >
-            {isMoodLocked ? <Lock size={12} /> : <Unlock size={12} />}
-          </button>
+
+          {/* Nested 2-level dropdown */}
+          <AnimatePresence>
+            {showHarmonyPicker && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setShowHarmonyPicker(false)} />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.94, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.94, y: 8 }}
+                  transition={SPRING}
+                  className="absolute left-0 top-full mt-2 z-30 flex gap-1.5 bg-[#0d0d18]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 overflow-hidden"
+                  style={{ minWidth: 460 }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/* Left panel: Harmony types */}
+                  <div className="flex flex-col gap-0.5 w-44 shrink-0 border-r border-white/5 pr-1.5">
+                    <p className="text-[8px] font-black uppercase tracking-[0.15em] text-white/25 px-2 py-1">Harmony Rule</p>
+                    {Object.entries(HARMONY_TYPES).map(([typeKey, type]) => {
+                      const isActive = pickerHarmonyType === typeKey;
+                      return (
+                        <button key={typeKey}
+                          onClick={() => setPickerHarmonyType(typeKey)}
+                          className="flex items-center justify-between px-2.5 py-2 rounded-lg text-left transition-colors group"
+                          style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.07)' : 'transparent' }}
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[11px] font-bold" style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.6)' }}>{type.name}</span>
+                            <span className="text-[8px] text-white/25 leading-tight">{type.description.slice(0, 35)}…</span>
+                          </div>
+                          <ChevronRight size={10} className="opacity-30 group-hover:opacity-60 transition-opacity" />
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Right panel: Variants */}
+                  <div className="flex flex-col gap-0.5 flex-1">
+                    <p className="text-[8px] font-black uppercase tracking-[0.15em] text-white/25 px-2 py-1">Variant</p>
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.div key={pickerHarmonyType}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.15 }}
+                        className="flex flex-col gap-0.5"
+                      >
+                        {Object.entries(HARMONY_TYPES[pickerHarmonyType]?.variants || {}).map(([varKey, variant]) => {
+                          const key = `${pickerHarmonyType}__${varKey}`;
+                          const isSelected = activeTheme === key;
+                          return (
+                            <button key={key}
+                              onClick={() => {
+                                setActiveTheme(key);
+                                setShowHarmonyPicker(false);
+                              }}
+                              className="flex items-center justify-between px-2.5 py-2 rounded-lg text-left transition-colors"
+                              style={{ backgroundColor: isSelected ? 'rgba(255,255,255,0.08)' : 'transparent' }}
+                            >
+                              <span className="text-[11px] font-semibold" style={{ color: isSelected ? '#fff' : 'rgba(255,255,255,0.65)' }}>
+                                {variant.name}
+                              </span>
+                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
 

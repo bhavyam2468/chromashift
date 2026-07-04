@@ -29,6 +29,7 @@ export default function TemplatePreview({ isOpen, onClose, palette }) {
     { id: 'uikit',     label: 'UI Kit Showcase' },
     { id: 'spec',      label: 'Design System Spec' },
     { id: 'ecommerce', label: 'E-Commerce Store' },
+    { id: 'illustrations', label: '🎨 Illustrations' },
   ];
 
   return (
@@ -89,6 +90,7 @@ export default function TemplatePreview({ isOpen, onClose, palette }) {
                 {activeTab === 'uikit' && <UiKitPreview {...{ bg, surface, surfaceH, text, muted, border, accent, accent2, accentDk, sc, isDark }} />}
                 {activeTab === 'spec' && <SpecPreview {...{ bg, surface, surfaceH, text, muted, border, accent, accent2, accentDk, sc, isDark }} />}
                 {activeTab === 'ecommerce' && <EcommercePreview {...{ bg, surface, surfaceH, text, muted, border, accent, accent2, accentDk, sc, isDark }} />}
+                {activeTab === 'illustrations' && <IllustrationsPreview sc={sc} bg={bg} surface={surface} text={text} border={border} isDark={isDark} />}
 
               </div>
             </div>
@@ -744,4 +746,148 @@ function darken(hex, amount) {
   const g = Math.max(0, parseInt(h.substring(2, 4), 16) - amount * 3);
   const b = Math.max(0, parseInt(h.substring(4, 6), 16) - amount * 3);
   return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+}
+
+// ─── Illustrations Preview ─────────────────────────────────────────────────────
+// All SVG shapes are driven by the 9 semantic color tokens — they live-update
+// whenever the palette is shuffled or the harmony type is changed.
+
+function IllustrationsPreview({ bg, surface, surfaceH, text, muted, border, accent, accent2, accentDk, sc, isDark }) {
+  return (
+    <div className="p-6 md:p-8 flex flex-col gap-8" style={{ backgroundColor: bg }}>
+      <div>
+        <h2 className="text-xl font-extrabold tracking-tight" style={{ color: text }}>Live SVG Illustrations</h2>
+        <p className="text-xs opacity-50 mt-0.5" style={{ color: text }}>
+          Every shape recolors from your 9 palette tokens. Shuffle the palette to see them morph instantly.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* ── 1. Abstract Blob Composition ── */}
+        <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: surface, borderColor: border }}>
+          <div className="px-4 pt-4 pb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-40" style={{ color: text }}>Abstract Composition</span>
+          </div>
+          <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg" className="w-full" style={{ display: 'block' }}>
+            <rect width="400" height="260" fill={sc.bgDark} />
+            <ellipse cx="100" cy="160" rx="110" ry="90" fill={sc.primaryLight} opacity="0.85" />
+            <ellipse cx="290" cy="100" rx="90" ry="75" fill={sc.secondary} opacity="0.8" />
+            <circle cx="240" cy="200" r="55" fill={sc.primaryDark} opacity="0.75" />
+            <circle cx="340" cy="220" r="30" fill={sc.secondaryLight} opacity="0.9" />
+            {[[50,40],[180,30],[310,50],[370,150],[60,230]].map(([x,y], i) => (
+              <circle key={i} cx={x} cy={y} r="4"
+                fill={[sc.primaryLight, sc.secondaryLight, sc.primary, sc.secondary, sc.secondaryDark][i]}
+                opacity="0.7" />
+            ))}
+            <path d="M30 200 Q120 120 200 200" fill="none" stroke={sc.secondary} strokeWidth="2" opacity="0.5" />
+            <path d="M200 50 Q300 130 380 60" fill="none" stroke={sc.primaryLight} strokeWidth="2" opacity="0.45" />
+          </svg>
+        </div>
+
+        {/* ── 2. Team / People Illustration ── */}
+        <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: surface, borderColor: border }}>
+          <div className="px-4 pt-4 pb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-40" style={{ color: text }}>Team Collaboration</span>
+          </div>
+          <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg" className="w-full" style={{ display: 'block' }}>
+            <rect width="400" height="260" fill={sc.bgLight} />
+            <rect x="0" y="210" width="400" height="50" fill={sc.bgNeutral} opacity="0.25" />
+            {/* Person 1 */}
+            <ellipse cx="120" cy="162" rx="28" ry="38" fill={sc.primary} />
+            <circle cx="120" cy="116" r="22" fill={sc.primaryLight} />
+            <path d="M92 150 Q70 132 60 147" fill="none" stroke={sc.primary} strokeWidth="9" strokeLinecap="round" />
+            {/* Person 2 */}
+            <ellipse cx="240" cy="165" rx="32" ry="42" fill={sc.secondary} />
+            <circle cx="240" cy="118" r="24" fill={sc.secondaryLight} />
+            <path d="M268 150 Q295 112 310 122" fill="none" stroke={sc.secondary} strokeWidth="9" strokeLinecap="round" />
+            {/* Person 3 */}
+            <ellipse cx="340" cy="162" rx="26" ry="36" fill={sc.primaryDark} />
+            <circle cx="340" cy="118" r="21" fill={sc.secondaryLight} />
+            {/* Laptop */}
+            <rect x="155" y="165" width="65" height="40" rx="4" fill={sc.bgDark} />
+            <rect x="159" y="168" width="57" height="30" rx="2" fill={sc.primary} opacity="0.3" />
+            <rect x="148" y="204" width="80" height="5" rx="2" fill={sc.bgDark} />
+            {/* Speech bubble */}
+            <ellipse cx="310" cy="88" rx="40" ry="22" fill={sc.primaryLight} />
+            <polygon points="295,108 305,110 310,100" fill={sc.primaryLight} />
+            <text x="310" y="93" textAnchor="middle" fontSize="11" fontWeight="bold" fill={sc.primaryDark}>Hello!</text>
+          </svg>
+        </div>
+
+        {/* ── 3. Bar Chart / Analytics ── */}
+        <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: surface, borderColor: border }}>
+          <div className="px-4 pt-4 pb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-40" style={{ color: text }}>Analytics Dashboard</span>
+          </div>
+          <svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg" className="w-full" style={{ display: 'block' }}>
+            <rect width="400" height="240" fill={sc.bgDark} />
+            <rect x="20" y="18" width="170" height="60" rx="8" fill={sc.bgNeutral} opacity="0.4" />
+            <rect x="210" y="18" width="170" height="60" rx="8" fill={sc.bgNeutral} opacity="0.4" />
+            <text x="105" y="55" textAnchor="middle" fontSize="20" fontWeight="900" fill={sc.primaryLight}>$48.2K</text>
+            <text x="105" y="38" textAnchor="middle" fontSize="8" fill={sc.primary} opacity="0.7" fontWeight="bold">REVENUE</text>
+            <text x="295" y="55" textAnchor="middle" fontSize="20" fontWeight="900" fill={sc.secondaryLight}>1,894</text>
+            <text x="295" y="38" textAnchor="middle" fontSize="8" fill={sc.secondary} opacity="0.7" fontWeight="bold">USERS</text>
+            {[
+              { x: 40,  h: 70, col: sc.primary },
+              { x: 78,  h: 45, col: sc.secondary },
+              { x: 116, h: 90, col: sc.primaryLight },
+              { x: 154, h: 60, col: sc.secondaryLight },
+              { x: 192, h: 100, col: sc.primary },
+              { x: 230, h: 55, col: sc.secondary },
+              { x: 268, h: 80, col: sc.secondaryDark },
+              { x: 306, h: 40, col: sc.primaryDark },
+              { x: 344, h: 95, col: sc.primaryLight },
+            ].map((bar, i) => (
+              <rect key={i} x={bar.x} y={210 - bar.h} width="28" height={bar.h} rx="4" fill={bar.col} opacity="0.85" />
+            ))}
+          </svg>
+        </div>
+
+        {/* ── 4. Brand Mark / Logo Geometry ── */}
+        <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: surface, borderColor: border }}>
+          <div className="px-4 pt-4 pb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-40" style={{ color: text }}>Brand Mark Composition</span>
+          </div>
+          <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg" className="w-full" style={{ display: 'block' }}>
+            <rect width="400" height="260" fill={sc.bgLight} />
+            <polygon points="200,30 340,210 60,210" fill={sc.primary} opacity="0.9" />
+            <polygon points="200,80 300,200 100,200" fill={sc.secondary} opacity="0.85" />
+            <circle cx="200" cy="168" r="40" fill={sc.primaryLight} />
+            <circle cx="200" cy="168" r="18" fill={sc.secondaryDark} />
+            <circle cx="60" cy="210" r="12" fill={sc.secondaryLight} />
+            <circle cx="340" cy="210" r="12" fill={sc.primaryDark} />
+            <circle cx="200" cy="30" r="10" fill={sc.secondary} />
+            <text x="200" y="248" textAnchor="middle" fontSize="10" fontWeight="900" fill={sc.bgDark} opacity="0.35" letterSpacing="4">CHROMASHIFT</text>
+          </svg>
+        </div>
+
+        {/* ── 5. Full-width Hero Banner — all 9 colors ── */}
+        <div className="rounded-2xl border overflow-hidden md:col-span-2" style={{ backgroundColor: surface, borderColor: border }}>
+          <div className="px-4 pt-4 pb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-40" style={{ color: text }}>Hero Banner — All 9 Tokens Used</span>
+          </div>
+          <svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" className="w-full" style={{ display: 'block' }}>
+            <defs>
+              <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={sc.bgDark} />
+                <stop offset="100%" stopColor={sc.primaryDark} />
+              </linearGradient>
+            </defs>
+            <rect width="800" height="200" fill="url(#heroGrad)" />
+            <circle cx="100" cy="100" r="120" fill={sc.primary} opacity="0.12" />
+            <circle cx="700" cy="80" r="140" fill={sc.secondary} opacity="0.12" />
+            {[sc.bgDark, sc.bgNeutral, sc.bgLight, sc.primaryDark, sc.primary, sc.primaryLight, sc.secondaryDark, sc.secondary, sc.secondaryLight].map((col, i) => (
+              <rect key={i} x={i * 88 + 8} y="150" width="80" height="10" rx="5" fill={col} />
+            ))}
+            <text x="400" y="68" textAnchor="middle" fontSize="32" fontWeight="900" fill={sc.primaryLight} letterSpacing="-1">ChromaShift</text>
+            <text x="400" y="96" textAnchor="middle" fontSize="13" fontWeight="500" fill={sc.bgNeutral}>Algorithmically harmonized. Always beautiful.</text>
+            <rect x="326" y="108" width="148" height="30" rx="15" fill={sc.primary} />
+            <text x="400" y="128" textAnchor="middle" fontSize="11" fontWeight="800" fill={sc.bgLight}>Generate Palette →</text>
+          </svg>
+        </div>
+
+      </div>
+    </div>
+  );
 }
