@@ -376,20 +376,26 @@ export default function App() {
 
       <AnimatePresence>
         {copiedColor && (
-          <motion.div key="copy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="fixed inset-0 z-[60] flex flex-col items-center justify-center pointer-events-none"
-            style={{ backgroundColor: copiedColor }}>
-            <motion.div initial={{ scale: 0.6, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 1.1, opacity: 0, y: -20 }} transition={SPRING}
-              className="flex flex-col items-center gap-3">
-              <span className="text-5xl md:text-8xl font-black tracking-tighter uppercase select-none"
-                style={{ color: isColorLight(copiedColor) ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)' }}>Copied</span>
-              <span className="font-mono text-xl md:text-3xl font-bold tracking-widest select-none"
-                style={{ color: isColorLight(copiedColor) ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.45)' }}>
-                {copiedColor.toUpperCase()}
-              </span>
-            </motion.div>
+          <motion.div
+            key={`copy-${copiedColor}`}
+            initial={{ opacity: 0, y: 16, scale: 0.88 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.92 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+            className="fixed bottom-20 left-1/2 z-[60] pointer-events-none flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-2xl"
+            style={{
+              x: '-50%',
+              backgroundColor: 'rgba(15,15,20,0.9)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            {/* Color swatch chip */}
+            <div className="w-4 h-4 rounded-md shrink-0 shadow-inner" style={{ backgroundColor: copiedColor }} />
+            <span className="text-[11px] font-bold text-white/80 tracking-wide">Copied</span>
+            <span className="font-mono text-[11px] font-bold text-white/40 tracking-widest">
+              {copiedColor.toUpperCase()}
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
