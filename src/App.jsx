@@ -392,7 +392,7 @@ export default function App() {
       {/* Main color stripes screen */}
       <AnimatePresence>
         {isWelcomeState ? (
-          <motion.div key="welcome" className="absolute inset-0 z-20" exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.45 } }}>
+          <motion.div key="welcome" className="absolute inset-0 z-20 bg-[#09090f]" exit={{ opacity: 0, transition: { duration: 0.4, delay: 0.3 } }}>
             <WelcomeScreen onStart={triggerShuffle} />
           </motion.div>
         ) : (
@@ -470,7 +470,11 @@ function WelcomeScreen({ onStart }) {
   const containerVariants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
-    exit: { opacity: 0, scale: 0.97, filter: 'blur(12px)', transition: { duration: 0.45, ease: [0.4, 0, 1, 1] } }
+    exit: { 
+      scale: 0.92, 
+      filter: 'blur(12px)', 
+      transition: { duration: 0.45, ease: [0.4, 0, 1, 1] } 
+    }
   };
   const itemVariants = {
     hidden: { opacity: 0, y: 28 },
