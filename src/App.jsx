@@ -90,11 +90,19 @@ export default function App() {
   }, []);
 
   const triggerShuffle = useCallback(() => {
-    const { palette, size, activeTheme, isWelcomeState } = stateRef.current;
+    const { palette, size, activeTheme, isWelcomeState, isMoodLocked } = stateRef.current;
     if (isWelcomeState) setIsWelcomeState(false);
     setShuffleKey(k => k + 1);
 
-    setPalette(generatePalette(size, activeTheme, palette));
+    let nextTheme = activeTheme;
+    if (!isMoodLocked) {
+      const currentIndex = ALL_MOODS.indexOf(activeTheme);
+      const nextIndex = (currentIndex + 1) % ALL_MOODS.length;
+      nextTheme = ALL_MOODS[nextIndex];
+      setActiveTheme(nextTheme);
+    }
+
+    setPalette(generatePalette(size, nextTheme, palette));
   }, []);
 
   const startFastShuffle = useCallback(() => {
@@ -382,7 +390,7 @@ export default function App() {
       )}
 
       {/* Main color stripes screen */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {isWelcomeState ? (
           <WelcomeScreen key="welcome" onStart={triggerShuffle} />
         ) : (
