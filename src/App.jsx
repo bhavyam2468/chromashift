@@ -392,7 +392,9 @@ export default function App() {
       {/* Main color stripes screen */}
       <AnimatePresence>
         {isWelcomeState ? (
-          <WelcomeScreen key="welcome" onStart={triggerShuffle} />
+          <motion.div key="welcome" className="absolute inset-0 z-20" exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.45 } }}>
+            <WelcomeScreen onStart={triggerShuffle} />
+          </motion.div>
         ) : (
           <motion.div key="generator"
             className="flex-1 flex flex-col md:flex-row h-full w-full overflow-hidden relative z-10"
